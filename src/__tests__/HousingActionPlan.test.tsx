@@ -46,6 +46,7 @@ describe('HousingActionPlan backend fallback', () => {
 
   it('renders retention paths with status, dependencies, and blockers', async () => {
     vi.spyOn(caseApi, 'getPlan').mockRejectedValue(new Error('plan unavailable'));
+    vi.spyOn(caseApi, 'getPathExplanation').mockRejectedValue(new Error('explanation unavailable'));
     vi.spyOn(caseApi, 'getRetentionPaths').mockResolvedValue({
       caseId: props.backendCaseId,
       facts: {
@@ -77,6 +78,34 @@ describe('HousingActionPlan backend fallback', () => {
     expect(screen.getByText('CONDITIONAL')).toBeInTheDocument();
     expect(screen.getByText('Clarify the complaint')).toBeInTheDocument();
     expect(screen.getByText('Resolution has not been confirmed.')).toBeInTheDocument();
+  });
+
+  it('adds an explanation asynchronously without replacing solver status', async () => {
+    vi.spyOn(caseApi, 'getPlan').mockRejectedValue(new Error('plan unavailable'));
+    vi.spyOn(caseApi, 'getRetentionPaths').mockResolvedValue({
+      caseId: props.backendCaseId,
+      facts: { primaryBarrier: 'housing', situation: props.situation, urgency: props.timing, goal: props.goal, behaviorContributor: true, costConstraint: null },
+      appliedChanges: [],
+      paths: [{
+        key: 'move_with_pet', title: 'Move with your pet', objective: 'Relocate together.', status: 'BLOCKED',
+        statusReason: 'A known fact conflicts.', reasonCodes: ['KNOWN_CONSTRAINT_CONFLICT'], rankScore: 100, friction: 3,
+        blockers: [{ code: 'KNOWN_CONSTRAINT_CONFLICT', type: 'PRECONDITION', field: 'goalSupportsMove', currentValue: false, requiredCondition: 'Goal allows moving', status: 'KNOWN_CONFLICT', label: 'The stated goal does not allow moving.' }],
+        steps: [],
+      }],
+    });
+    vi.spyOn(caseApi, 'getPathExplanation').mockResolvedValue({
+      source: 'generated', grounded: { pathKey: 'move_with_pet', status: 'BLOCKED', rank: 1, isHypothetical: false },
+      explanation: {
+        status: 'BLOCKED', isHypothetical: false, headline: 'Moving is currently blocked',
+        summary: 'This path is blocked because your goal is to stay.',
+        why: 'Pet-friendly housing and move requirements remain unknown, not available.',
+        nextStep: 'The computed unlock can be explored as a hypothetical.', resourceNames: [],
+      },
+    });
+    render(<HousingActionPlan {...props} />);
+    expect(await screen.findByLabelText('Plain-language explanation for Move with your pet')).toBeInTheDocument();
+    expect(screen.getByText('BLOCKED')).toBeInTheDocument();
+    expect(screen.getByText(/remain unknown, not available/)).toBeInTheDocument();
   });
 
   it('shows unlock loading, applies hypothetical changes, and resets to actual facts', async () => {

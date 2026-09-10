@@ -8,13 +8,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { HousingSituation, HousingTiming, HousingGoal } from '@/types/assessment';
+import type { BarrierType, BehaviorBarrier, BehaviorConcern, HousingSituation, HousingTiming, HousingGoal } from '@/types/assessment';
 
 interface HousingCompleteProps {
   petName: string;
   situation: HousingSituation;
   timing: HousingTiming;
   goal: HousingGoal;
+  contributingBarriers?: BarrierType[];
+  behaviorConcerns?: Exclude<BehaviorConcern, ''>[];
+  behaviorHelpBarrier?: BehaviorBarrier;
+  costConstraint?: string;
   onContinue: () => void;
   onBack: () => void;
   onRestart?: () => void;
@@ -25,11 +29,19 @@ export const HousingComplete: React.FC<HousingCompleteProps> = ({
   situation,
   timing,
   goal,
+  contributingBarriers = [],
+  behaviorConcerns = [],
+  behaviorHelpBarrier = '',
+  costConstraint = '',
   onContinue,
   onBack,
   onRestart,
 }) => {
   const displayName = petName.trim() || 'your pet';
+  const barrierLabel = (barrier: BarrierType) => ({
+    housing: 'Housing', behavior: 'Behavior', cost: 'Money / financial strain', medical: 'Veterinary / pet health',
+    temporary_crisis: 'Temporary crisis', time_capacity: 'Time / capacity', circumstances: 'Family / life change',
+  })[barrier];
 
   return (
     <div className="py-8 sm:py-14 md:py-20 px-4 sm:px-6 md:px-8 max-w-3xl mx-auto w-full">
@@ -75,6 +87,27 @@ export const HousingComplete: React.FC<HousingCompleteProps> = ({
               Housing
             </p>
           </div>
+
+          {contributingBarriers.length > 0 && (
+            <div className="space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/70 font-sans">Also affecting the situation</span>
+              <p className="text-base font-medium text-[#2D2D2D]">{contributingBarriers.map(barrierLabel).join(', ')}</p>
+            </div>
+          )}
+
+          {behaviorConcerns.length > 0 && (
+            <div className="space-y-1 sm:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/70 font-sans">Behavior</span>
+              <p className="text-base font-medium text-[#2D2D2D]">{behaviorConcerns.join(', ')}</p>
+            </div>
+          )}
+
+          {(behaviorHelpBarrier || costConstraint) && (
+            <div className="space-y-1 sm:col-span-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/70 font-sans">Constraint</span>
+              <p className="text-base font-medium text-[#2D2D2D]">{costConstraint || behaviorHelpBarrier}</p>
+            </div>
+          )}
 
           <div className="space-y-1">
             <span className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/70 font-sans">

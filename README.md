@@ -59,7 +59,7 @@ The search reuses the Retention Path Solver as its only feasibility decision-mak
 
 Applying an unlock changes only in-memory exploration state and requests a recomputation with trusted change codes. It does not patch the case or its factors. “Reset to current situation” discards those codes and recomputes from persisted facts. Counterfactual search is limited to three changes; unsupported paths return no modeled unlock instead of invented advice.
 
-Generated explanations remain outside this implementation. Natural-language intake is documented below.
+Natural-language intake and computation-first explanations are documented below.
 
 ## Retention Path Solver
 
@@ -81,4 +81,20 @@ The optional story field sends only the submitted text to `POST /api/intake/extr
 
 Groq is used only as a structured parser. It may identify explicitly stated supported case facts, but it does not determine feasibility, rank paths, choose interventions, diagnose an animal, generate safety guidance, or recommend resources. Unstated facts remain `null`; application code selects a small number of existing guided follow-up questions, and confirmed facts merge into the existing assessment state and case-factor synchronization.
 
-If configuration, the provider, parsing, or validation fails, the guided intake remains available and no partial extraction is committed. Raw owner stories and model responses are not persisted. Generated or grounded explanations are outside Pass 8 and have not been implemented.
+If configuration, the provider, parsing, or validation fails, the guided intake remains available and no partial extraction is committed. Raw owner stories and model responses are not persisted.
+
+## Multi-factor case model
+
+The guided intake accepts multiple controlled factors and then records one explicit primary barrier. Every other selected factor is retained in stable order as a contributing barrier; the primary is never duplicated in that list. Housing and Behavior use the existing detailed pathways, while Money, Veterinary/pet health, Temporary crisis, Time/capacity, and Family/life change are preserved as structured context without pretending that the Housing solver deeply supports them.
+
+Behavior supports multiple owner-selected concerns followed by the existing deterministic seriousness, prior-help, and access-barrier questions. Selecting a cost barrier to behavior help also records the existing cost constraint. Aggression-related concerns still route through the deterministic seriousness question, and the canonical “Safety comes first” notice remains application copy rather than generated text.
+
+Pass 8 extractions merge into the same selected, primary, contributing, Behavior, Housing, cost, urgency, and goal fields. Null values do not erase known answers, existing explicit user choices win, and duplicates are removed. Session version 2 migrates valid version-1 cases by deriving the selected-factor and Behavior-concern arrays from their existing fields. Multiple factors use the existing `case_factors` table with stable factor keys; no new questionnaire table is required.
+
+## Computation-first explanations
+
+`POST /api/cases/:id/explain` accepts only a supported path key, explanation mode, and optional supported what-if codes. The server reloads persisted facts and reruns the Retention Path Solver and Counterfactual Explorer; the browser cannot supply a status, rank, blocker, or Smallest Unlock. Only recomputed results and resources already attached by the verified catalog enter the grounded payload.
+
+Groq explains this payload using strict structured output followed by Zod validation and deterministic checks for status, hypothetical state, resource names, and URLs. What-if explanations must remain explicitly hypothetical. If configuration, generation, or validation fails, deterministic prose is returned while path cards, blockers, resources, and counterfactual controls remain usable.
+
+Generated prose never replaces or rewrites the deterministic Behavior safety notice. Groq is explanation-only: it does not calculate feasibility, ranking, blockers, resource scores, or Smallest Unlock, and it receives no raw owner story.

@@ -43,7 +43,8 @@ describe('natural-language intake validation', () => {
   it('chooses supported follow-ups deterministically and keeps the count small', () => {
     expect(selectIntakeFollowUps(lunaExtraction)).toEqual([
       { field: 'pet', screen: 'pet-info', question: 'Who are we helping?' },
-      { field: 'goal', screen: 'housing-3', question: 'Would you prefer to stay where you are or move?' },
+      { field: 'behaviorSeriousness', screen: 'behavior-2', question: 'How serious does the situation feel?' },
+      { field: 'behaviorAlreadyTried', screen: 'behavior-3', question: 'What have you already tried?' },
     ]);
   });
 });

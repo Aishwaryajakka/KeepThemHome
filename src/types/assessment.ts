@@ -1,6 +1,7 @@
 export type PetType = 'dog' | 'cat' | 'other' | '';
 
-export type RootCauseType = 'housing' | 'behavior' | 'cost' | 'medical' | 'circumstances' | '';
+export type BarrierType = 'housing' | 'behavior' | 'cost' | 'medical' | 'temporary_crisis' | 'time_capacity' | 'circumstances';
+export type RootCauseType = BarrierType | '';
 
 export type HousingSituation =
   | "My landlord or property says pets aren’t allowed"
@@ -31,7 +32,31 @@ export type BehaviorConcern =
   | "Leash or walking problems"
   | "Conflict with another animal"
   | "Growling, biting, or aggression"
+  | "Difficulty around other dogs"
+  | "Difficulty around cats or other animals"
+  | "Difficulty around children or people"
+  | "Resource guarding"
+  | "Escape or roaming"
+  | "Fear or anxiety"
+  | "High energy or exercise needs"
   | '';
+
+export const BEHAVIOR_CONCERN_OPTIONS: Exclude<BehaviorConcern, ''>[] = [
+  'Barking or excessive noise',
+  'Destructive behavior',
+  'House-training problems',
+  'Separation-related behavior',
+  'Leash or walking problems',
+  'Conflict with another animal',
+  'Growling, biting, or aggression',
+  'Difficulty around other dogs',
+  'Difficulty around cats or other animals',
+  'Difficulty around children or people',
+  'Resource guarding',
+  'Escape or roaming',
+  'Fear or anxiety',
+  'High energy or exercise needs',
+];
 
 export type BehaviorSeriousness =
   | "Frustrating, but manageable"

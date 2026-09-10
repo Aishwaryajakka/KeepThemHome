@@ -27,6 +27,8 @@ describe('case API contracts', () => {
       factorType: 'urgency', role: 'unknown', source: 'structured',
     }] }).success).toBe(false);
     expect(createOutcomeSchema.safeParse({ status: 'guaranteed_success' }).success).toBe(false);
+    const repeated = { factorType: 'behavior_concern_barking', factorValue: 'Barking or excessive noise', role: 'contributing', source: 'structured' };
+    expect(createFactorsSchema.safeParse({ factors: [repeated, repeated] }).success).toBe(false);
   });
 
   it('rejects malformed UUIDs', () => {

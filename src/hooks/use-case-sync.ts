@@ -1,6 +1,12 @@
 import { useEffect, useRef } from 'react';
 import { caseApi, type ApiCaseStatus, type ApiOutcomeStatus, type FactorInput } from '@/lib/case-api';
 import type { AssessmentCaseState } from '@/lib/assessment-session';
+import { BEHAVIOR_CONCERN_OPTIONS, type BarrierType } from '@/types/assessment';
+
+const factorKey = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+const contributingFactorType = (barrier: BarrierType) => barrier === 'behavior'
+  ? 'behavior_contributor'
+  : `contributing_${barrier}`;
 
 const outcomeStatus = (outcome: AssessmentCaseState['outcome']): ApiOutcomeStatus | undefined => {
   if (outcome === 'keeping') return 'keeping';
@@ -10,9 +16,18 @@ const outcomeStatus = (outcome: AssessmentCaseState['outcome']): ApiOutcomeStatu
 
 export const structuredFactors = (caseState: AssessmentCaseState): FactorInput[] => {
   const factors: FactorInput[] = [];
+  const behaviorActive = caseState.selectedFactors.includes('behavior');
+  const costActive = caseState.selectedFactors.includes('cost');
   if (caseState.rootCause) factors.push({
     factorType: 'primary_barrier', factorValue: caseState.rootCause, role: 'primary', source: 'structured',
   });
+  for (const barrier of ['housing', 'behavior', 'cost', 'medical', 'temporary_crisis', 'time_capacity', 'circumstances'] as BarrierType[]) {
+    factors.push({
+      factorType: contributingFactorType(barrier),
+      factorValue: barrier !== caseState.rootCause && caseState.contributingBarriers.includes(barrier) ? barrier : null,
+      role: 'contributing', source: 'structured',
+    });
+  }
   if (caseState.rootCause === 'housing') {
     if (caseState.housing.situation) factors.push({
       factorType: 'housing_situation', factorValue: caseState.housing.situation, role: 'contributing', source: 'structured',
@@ -24,26 +39,27 @@ export const structuredFactors = (caseState: AssessmentCaseState): FactorInput[]
       factorType: 'goal', factorValue: caseState.housing.goal, role: 'contributing', source: 'structured',
     });
   }
-  if (caseState.behavior.concern) factors.push({
-      factorType: 'behavior_concern', factorValue: caseState.behavior.concern, role: 'contributing', source: 'structured',
-    });
-  if (caseState.behavior.seriousness) factors.push({
-      factorType: 'behavior_seriousness', factorValue: caseState.behavior.seriousness, role: 'constraint', source: 'structured',
-    });
-  if (caseState.behavior.alreadyTried) factors.push({
-      factorType: 'behavior_already_tried', factorValue: caseState.behavior.alreadyTried, role: 'contributing', source: 'structured',
-    });
-  if (caseState.behavior.helpBarrier) factors.push({
-      factorType: 'behavior_help_barrier', factorValue: caseState.behavior.helpBarrier, role: 'constraint', source: 'structured',
-    });
-  if (caseState.contributingBarriers?.includes('behavior') && !caseState.behavior.concern) factors.push({
-    factorType: 'behavior_contributor', factorValue: 'behavior', role: 'contributing', source: 'structured',
+  for (const concern of BEHAVIOR_CONCERN_OPTIONS) factors.push({
+    factorType: `behavior_concern_${factorKey(concern)}`,
+    factorValue: behaviorActive && caseState.behavior.concerns.includes(concern) ? concern : null,
+    role: 'contributing', source: 'structured',
   });
-  if (caseState.costConstraint) factors.push({
-    factorType: 'cost_constraint', factorValue: caseState.costConstraint, role: 'constraint', source: 'structured',
+  factors.push({
+    factorType: 'behavior_seriousness', factorValue: behaviorActive ? caseState.behavior.seriousness || null : null,
+    role: 'constraint', source: 'structured',
   });
-  if (caseState.contributingBarriers?.includes('cost') && !caseState.costConstraint) factors.push({
-    factorType: 'cost_constraint', factorValue: 'Explicitly identified', role: 'constraint', source: 'structured',
+  factors.push({
+    factorType: 'behavior_already_tried', factorValue: behaviorActive ? caseState.behavior.alreadyTried || null : null,
+    role: 'contributing', source: 'structured',
+  });
+  factors.push({
+    factorType: 'behavior_help_barrier', factorValue: behaviorActive ? caseState.behavior.helpBarrier || null : null,
+    role: 'constraint', source: 'structured',
+  });
+  factors.push({
+    factorType: 'cost_constraint',
+    factorValue: costActive ? caseState.costConstraint || 'Explicitly identified' : null,
+    role: 'constraint', source: 'structured',
   });
   return factors;
 };
@@ -88,7 +104,7 @@ export const useCaseSync = (
   }, [caseState]);
 
   useEffect(() => {
-    if (!caseState.backendCaseId) return;
+    if (!caseState.backendCaseId || !caseState.rootCause) return;
     const factors = structuredFactors(caseState);
     if (factors.length === 0) return;
     const fingerprint = JSON.stringify(factors);

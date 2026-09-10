@@ -23,7 +23,6 @@ import OutcomeRehoming from '@/components/assessment/OutcomeRehoming';
 import ResponsibleRehoming from '@/components/assessment/ResponsibleRehoming';
 import type {
   PetType,
-  RootCauseType,
   AssessmentScreen,
   HousingSituation,
   HousingTiming,
@@ -32,6 +31,7 @@ import type {
   BehaviorSeriousness,
   BehaviorTried,
   BehaviorBarrier,
+  BarrierType,
   OutcomeType,
 } from '@/types/assessment';
 import {
@@ -64,9 +64,12 @@ export const HomePage: React.FC = () => {
     petName,
     petType,
     rootCause: selectedRootCause,
+    selectedFactors,
+    contributingBarriers,
     housing: { situation: housingSituation, urgency: housingTiming, goal: housingGoal },
     behavior: {
       concern: behaviorConcern,
+      concerns: behaviorConcerns,
       seriousness: behaviorSeriousness,
       alreadyTried: behaviorTried,
       helpBarrier: behaviorBarrier,
@@ -139,13 +142,22 @@ export const HomePage: React.FC = () => {
     setCurrentScreen('pet-info');
   };
 
-  const handleSelectRootCause = (cause: RootCauseType) => {
-    updateCase('rootCause', cause);
-    if (cause === 'housing') {
-      setCurrentScreen('housing-1');
-    } else if (cause === 'behavior') {
-      setCurrentScreen('behavior-1');
-    }
+  const handleFactorsChange = (factors: BarrierType[]) => {
+    const primary = selectedRootCause && factors.includes(selectedRootCause) ? selectedRootCause : '';
+    dispatch({ type: 'update', patch: {
+      selectedFactors: factors,
+      rootCause: primary,
+      contributingBarriers: factors.filter((factor) => factor !== primary),
+    } });
+  };
+
+  const handleConfirmFactors = (primary: BarrierType) => {
+    dispatch({ type: 'update', patch: {
+      rootCause: primary,
+      contributingBarriers: selectedFactors.filter((factor) => factor !== primary),
+    } });
+    if (selectedFactors.includes('behavior')) setCurrentScreen('behavior-1');
+    else if (primary === 'housing') setCurrentScreen('housing-1');
   };
 
   const handleBackToRootCause = () => {
@@ -212,6 +224,34 @@ export const HomePage: React.FC = () => {
 
   const handleContinueToBehaviorComplete = () => {
     setCurrentScreen('behavior-complete');
+  };
+
+  const handleContinueAfterBehavior = () => {
+    if (selectedRootCause !== 'housing') return;
+    if (!housingSituation) setCurrentScreen('housing-1');
+    else if (!housingTiming) setCurrentScreen('housing-2');
+    else if (!housingGoal) setCurrentScreen('housing-3');
+    else setCurrentScreen('housing-complete');
+  };
+
+  const handleToggleBehaviorConcern = (value: Exclude<BehaviorConcern, ''>) => {
+    const concerns = behaviorConcerns.includes(value)
+      ? behaviorConcerns.filter((concern) => concern !== value)
+      : [...behaviorConcerns, value];
+    updateCase('behavior', { ...caseState.behavior, concerns, concern: concerns[0] ?? '' });
+  };
+
+  const handleSelectBehaviorBarrier = (value: BehaviorBarrier) => {
+    const patch: Partial<AssessmentCaseState> = {
+      behavior: { ...caseState.behavior, helpBarrier: value },
+    };
+    if (value === 'Cost') {
+      const factors = Array.from(new Set([...selectedFactors, 'cost' as const]));
+      patch.selectedFactors = factors;
+      patch.contributingBarriers = factors.filter((factor) => factor !== selectedRootCause);
+      patch.costConstraint = 'Cannot afford behavior help';
+    }
+    dispatch({ type: 'update', patch });
   };
 
   const handleBackToBehavior4 = () => {
@@ -287,8 +327,10 @@ export const HomePage: React.FC = () => {
         {currentScreen === 'root-cause' && (
           <RootCauseScreen
             petName={petName}
+            selectedFactors={selectedFactors}
             selectedRootCause={selectedRootCause}
-            onSelectRootCause={handleSelectRootCause}
+            onFactorsChange={handleFactorsChange}
+            onConfirm={handleConfirmFactors}
             onBack={handleBackToPetInfo}
           />
         )}
@@ -328,6 +370,10 @@ export const HomePage: React.FC = () => {
             situation={housingSituation}
             timing={housingTiming}
             goal={housingGoal}
+            contributingBarriers={contributingBarriers}
+            behaviorConcerns={behaviorConcerns}
+            behaviorHelpBarrier={behaviorBarrier}
+            costConstraint={caseState.costConstraint}
             onContinue={handleContinueToHousingPlan}
             onBack={handleBackToHousing3}
             onRestart={handleStartAnotherCase}
@@ -350,8 +396,8 @@ export const HomePage: React.FC = () => {
         {currentScreen === 'behavior-1' && (
           <BehaviorStep1
             petName={petName}
-            selectedConcern={behaviorConcern}
-            onSelectConcern={(value) => updateCase('behavior', { ...caseState.behavior, concern: value })}
+            selectedConcerns={behaviorConcerns}
+            onToggleConcern={handleToggleBehaviorConcern}
             onContinue={handleContinueToBehavior2}
             onBack={handleBackToRootCause}
           />
@@ -378,7 +424,7 @@ export const HomePage: React.FC = () => {
         {currentScreen === 'behavior-4' && (
           <BehaviorStep4
             selectedBarrier={behaviorBarrier}
-            onSelectBarrier={(value) => updateCase('behavior', { ...caseState.behavior, helpBarrier: value })}
+            onSelectBarrier={handleSelectBehaviorBarrier}
             onContinue={handleContinueToBehaviorComplete}
             onBack={handleBackToBehavior3}
           />
@@ -391,6 +437,10 @@ export const HomePage: React.FC = () => {
             seriousness={behaviorSeriousness}
             tried={behaviorTried}
             barrier={behaviorBarrier}
+            concerns={behaviorConcerns}
+            contributingBarriers={contributingBarriers}
+            costConstraint={caseState.costConstraint}
+            onContinue={selectedRootCause === 'housing' ? handleContinueAfterBehavior : undefined}
             onBack={handleBackToBehavior4}
             onRestart={handleStartAnotherCase}
           />

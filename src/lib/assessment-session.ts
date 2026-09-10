@@ -1,5 +1,6 @@
 import type {
   AssessmentScreen,
+  BarrierType,
   BehaviorBarrier,
   BehaviorConcern,
   BehaviorSeriousness,
@@ -13,14 +14,15 @@ import type {
 } from '@/types/assessment';
 
 export const ASSESSMENT_SESSION_KEY = 'keep-them-home:active-case';
-export const ASSESSMENT_SESSION_VERSION = 1;
+export const ASSESSMENT_SESSION_VERSION = 2;
 
 export interface AssessmentCaseState {
   backendCaseId?: string;
   petName: string;
   petType: PetType;
   rootCause: RootCauseType;
-  contributingBarriers?: Exclude<RootCauseType, ''>[];
+  selectedFactors: BarrierType[];
+  contributingBarriers: BarrierType[];
   costConstraint?: string;
   housing: {
     situation: HousingSituation;
@@ -29,6 +31,7 @@ export interface AssessmentCaseState {
   };
   behavior: {
     concern: BehaviorConcern;
+    concerns: Exclude<BehaviorConcern, ''>[];
     seriousness: BehaviorSeriousness;
     alreadyTried: BehaviorTried;
     helpBarrier: BehaviorBarrier;
@@ -41,17 +44,18 @@ export const initialAssessmentCase: AssessmentCaseState = {
   petName: '',
   petType: '',
   rootCause: '',
+  selectedFactors: [],
   contributingBarriers: [],
   costConstraint: '',
   housing: { situation: '', urgency: '', goal: '' },
-  behavior: { concern: '', seriousness: '', alreadyTried: '', helpBarrier: '' },
+  behavior: { concern: '', concerns: [], seriousness: '', alreadyTried: '', helpBarrier: '' },
   outcome: '',
   currentScreen: 'home',
 };
 
 const allowed = {
   petType: ['', 'dog', 'cat', 'other'],
-  rootCause: ['', 'housing', 'behavior', 'cost', 'medical', 'circumstances'],
+  rootCause: ['', 'housing', 'behavior', 'cost', 'medical', 'temporary_crisis', 'time_capacity', 'circumstances'],
   housingSituation: [
     '',
     'My landlord or property says pets aren’t allowed',
@@ -71,6 +75,13 @@ const allowed = {
     'Leash or walking problems',
     'Conflict with another animal',
     'Growling, biting, or aggression',
+    'Difficulty around other dogs',
+    'Difficulty around cats or other animals',
+    'Difficulty around children or people',
+    'Resource guarding',
+    'Escape or roaming',
+    'Fear or anxiety',
+    'High energy or exercise needs',
   ],
   behaviorSeriousness: [
     '',
@@ -124,16 +135,26 @@ export const isAssessmentCaseState = (value: unknown): value is AssessmentCaseSt
     && typeof value.petName === 'string'
     && includes(allowed.petType, value.petType)
     && includes(allowed.rootCause, value.rootCause)
-    && (value.contributingBarriers === undefined
-      || (Array.isArray(value.contributingBarriers)
-        && value.contributingBarriers.every((barrier) => barrier !== '' && includes(allowed.rootCause, barrier))
-        && new Set(value.contributingBarriers).size === value.contributingBarriers.length))
+    && Array.isArray(value.selectedFactors)
+    && value.selectedFactors.every((factor) => factor !== '' && includes(allowed.rootCause, factor))
+    && new Set(value.selectedFactors).size === value.selectedFactors.length
+    && (!value.rootCause || (value.selectedFactors as unknown[]).includes(value.rootCause))
+    && Array.isArray(value.contributingBarriers)
+    && value.contributingBarriers.every((barrier) => barrier !== '' && includes(allowed.rootCause, barrier))
+    && new Set(value.contributingBarriers).size === value.contributingBarriers.length
+    && !value.contributingBarriers.includes(value.rootCause)
+    && value.contributingBarriers.every((barrier) => (value.selectedFactors as unknown[]).includes(barrier))
+    && value.selectedFactors.every((factor) => factor === value.rootCause || (value.contributingBarriers as unknown[]).includes(factor))
     && (value.costConstraint === undefined
       || (typeof value.costConstraint === 'string' && value.costConstraint.length <= 200))
     && includes(allowed.housingSituation, value.housing.situation)
     && includes(allowed.housingUrgency, value.housing.urgency)
     && includes(allowed.housingGoal, value.housing.goal)
     && includes(allowed.behaviorConcern, value.behavior.concern)
+    && Array.isArray(value.behavior.concerns)
+    && value.behavior.concerns.every((concern) => concern !== '' && includes(allowed.behaviorConcern, concern))
+    && new Set(value.behavior.concerns).size === value.behavior.concerns.length
+    && value.behavior.concern === (value.behavior.concerns[0] ?? '')
     && includes(allowed.behaviorSeriousness, value.behavior.seriousness)
     && includes(allowed.behaviorTried, value.behavior.alreadyTried)
     && includes(allowed.behaviorBarrier, value.behavior.helpBarrier)
@@ -146,13 +167,35 @@ export const loadAssessmentCase = (): AssessmentCaseState => {
     const raw = sessionStorage.getItem(ASSESSMENT_SESSION_KEY);
     if (!raw) return initialAssessmentCase;
     const stored: unknown = JSON.parse(raw);
-    if (!isRecord(stored)
-      || stored.version !== ASSESSMENT_SESSION_VERSION
-      || !isAssessmentCaseState(stored.caseState)) {
+    if (!isRecord(stored) || !isRecord(stored.caseState)) {
       sessionStorage.removeItem(ASSESSMENT_SESSION_KEY);
       return initialAssessmentCase;
     }
-    return stored.caseState;
+    let candidate: unknown = stored.caseState;
+    if (stored.version === 1) {
+      const legacy = stored.caseState;
+      const behavior = isRecord(legacy.behavior) ? legacy.behavior : {};
+      const rootCause = includes(allowed.rootCause, legacy.rootCause) ? legacy.rootCause : '';
+      const legacyContributing = Array.isArray(legacy.contributingBarriers)
+        ? legacy.contributingBarriers.filter((value): value is BarrierType => value !== '' && includes(allowed.rootCause, value))
+        : [];
+      const selectedFactors = Array.from(new Set([
+        ...(rootCause ? [rootCause] : []), ...legacyContributing,
+      ]));
+      const concern = includes(allowed.behaviorConcern, behavior.concern) ? behavior.concern : '';
+      candidate = {
+        ...legacy,
+        selectedFactors,
+        contributingBarriers: legacyContributing.filter((barrier) => barrier !== rootCause),
+        behavior: { ...behavior, concern, concerns: concern ? [concern] : [] },
+      };
+    }
+    if (stored.version !== ASSESSMENT_SESSION_VERSION && stored.version !== 1) candidate = undefined;
+    if (!isAssessmentCaseState(candidate)) {
+      sessionStorage.removeItem(ASSESSMENT_SESSION_KEY);
+      return initialAssessmentCase;
+    }
+    return candidate;
   } catch {
     try {
       sessionStorage.removeItem(ASSESSMENT_SESSION_KEY);

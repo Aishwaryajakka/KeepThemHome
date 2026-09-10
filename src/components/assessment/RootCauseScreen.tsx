@@ -1,198 +1,76 @@
-import React from 'react';
-import { ArrowLeft, Home, Activity, DollarSign, Stethoscope, Compass, AlertCircle, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { Activity, AlertCircle, ArrowLeft, Check, Compass, DollarSign, Home, Stethoscope, Timer, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { RootCauseType } from '@/types/assessment';
+import type { BarrierType } from '@/types/assessment';
 
 interface RootCauseScreenProps {
   petName: string;
-  selectedRootCause: RootCauseType;
-  onSelectRootCause: (cause: RootCauseType) => void;
+  selectedFactors: BarrierType[];
+  selectedRootCause: BarrierType | '';
+  onFactorsChange: (factors: BarrierType[]) => void;
+  onConfirm: (primary: BarrierType) => void;
   onBack: () => void;
 }
 
-export const RootCauseScreen: React.FC<RootCauseScreenProps> = ({
-  petName,
-  selectedRootCause,
-  onSelectRootCause,
-  onBack,
-}) => {
+const cards: Array<{ id: BarrierType; title: string; description: string; icon: React.ReactNode; deepSupport: boolean }> = [
+  { id: 'housing', title: 'Housing', description: 'Landlord, moving, deposits, or pet restrictions.', icon: <Home className="h-5 w-5" />, deepSupport: true },
+  { id: 'cost', title: 'Money / financial strain', description: 'Behavior help, deposits, veterinary care, moving, or general costs.', icon: <DollarSign className="h-5 w-5" />, deepSupport: false },
+  { id: 'behavior', title: 'Behavior', description: 'Noise, destruction, separation, conflict, or safety concerns.', icon: <Activity className="h-5 w-5" />, deepSupport: true },
+  { id: 'medical', title: 'Veterinary / pet health', description: 'Veterinary costs or ongoing care needs.', icon: <Stethoscope className="h-5 w-5" />, deepSupport: false },
+  { id: 'temporary_crisis', title: 'Temporary crisis', description: 'A short-term disruption affecting care or housing.', icon: <Timer className="h-5 w-5" />, deepSupport: false },
+  { id: 'time_capacity', title: 'Time / capacity', description: 'Work, caregiving, or limited time for pet care.', icon: <Users className="h-5 w-5" />, deepSupport: false },
+  { id: 'circumstances', title: 'Family / life change', description: 'Illness, family changes, or another life transition.', icon: <Compass className="h-5 w-5" />, deepSupport: false },
+];
+
+export const RootCauseScreen: React.FC<RootCauseScreenProps> = ({ petName, selectedFactors, selectedRootCause, onFactorsChange, onConfirm, onBack }) => {
+  const [choosingPrimary, setChoosingPrimary] = useState(false);
+  const [primaryChoice, setPrimaryChoice] = useState<BarrierType | ''>(selectedRootCause && selectedFactors.includes(selectedRootCause) ? selectedRootCause : '');
   const displayName = petName.trim() || 'your pet';
 
-  const cards: {
-    id: RootCauseType;
-    title: string;
-    description: string;
-    icon: React.ReactNode;
-    isFunctionalPathway: boolean;
-  }[] = [
-    {
-      id: 'housing',
-      title: 'HOUSING',
-      description: 'Landlord, moving, deposits, or pet restrictions.',
-      icon: <Home className="w-5 h-5" />,
-      isFunctionalPathway: true,
-    },
-    {
-      id: 'behavior',
-      title: 'BEHAVIOR',
-      description: 'Barking, destruction, separation, conflict, or other behavior challenges.',
-      icon: <Activity className="w-5 h-5" />,
-      isFunctionalPathway: true,
-    },
-    {
-      id: 'cost',
-      title: 'COST',
-      description: 'Food, supplies, or unexpected expenses.',
-      icon: <DollarSign className="w-5 h-5" />,
-      isFunctionalPathway: false,
-    },
-    {
-      id: 'medical',
-      title: 'MEDICAL CARE',
-      description: 'Veterinary costs or ongoing care needs.',
-      icon: <Stethoscope className="w-5 h-5" />,
-      isFunctionalPathway: false,
-    },
-    {
-      id: 'circumstances',
-      title: 'LIFE CIRCUMSTANCES',
-      description: 'Moving, illness, family changes, or temporary hardship.',
-      icon: <Compass className="w-5 h-5" />,
-      isFunctionalPathway: false,
-    },
-  ];
-
-  // Check if a non-functional category is currently active
-  const isBuildingPathway =
-    selectedRootCause === 'cost' ||
-    selectedRootCause === 'medical' ||
-    selectedRootCause === 'circumstances';
-
-  const handleCardClick = (id: RootCauseType) => {
-    onSelectRootCause(id);
+  const toggleFactor = (factor: BarrierType) => {
+    const next = selectedFactors.includes(factor) ? selectedFactors.filter((value) => value !== factor) : [...selectedFactors, factor];
+    onFactorsChange(next);
+    if (primaryChoice && !next.includes(primaryChoice)) setPrimaryChoice('');
+  };
+  const continueFromFactors = () => {
+    if (selectedFactors.length === 1) return onConfirm(selectedFactors[0]);
+    if (selectedRootCause && selectedFactors.includes(selectedRootCause)) return onConfirm(selectedRootCause);
+    setChoosingPrimary(true);
   };
 
-  const handleResetChallenge = () => {
-    onSelectRootCause('');
-  };
-
-  return (
-    <div className="py-8 sm:py-14 md:py-20 px-4 sm:px-6 md:px-8 max-w-3xl mx-auto w-full">
-      {/* Subtle Back Button */}
-      <button
-        type="button"
-        onClick={onBack}
-        className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-[#2D2D2D]/60 hover:text-[#2E5440] font-medium mb-8 sm:mb-10 transition-colors cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E5440] rounded px-1 -ml-1"
-      >
-        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-        <span>Back to pet information</span>
-      </button>
-
-      {/* Screen Header */}
-      <div className="mb-8 sm:mb-10">
-        <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase text-[#2E5440]/80 mb-3 font-sans">
-          WHAT’S GOING ON?
-        </p>
-        <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#2E5440] font-normal leading-tight tracking-tight mb-3 sm:mb-4 text-balance">
-          What’s making it hard to keep {displayName}?
-        </h1>
-        <p className="font-sans text-base sm:text-lg text-[#2D2D2D]/80 leading-relaxed text-pretty">
-          Choose the challenge that feels most important right now.
-        </p>
-      </div>
-
-      {/* Supportive Message for Building Pathways */}
-      {isBuildingPathway && (
-        <div className="mb-8 p-5 sm:p-6 rounded-xl bg-[#FAF7F2] border border-[#E3C9B2] shadow-sm animate-fade-in flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-[#2E5440] shrink-0 mt-0.5" />
-            <div>
-              <p className="font-serif text-lg font-medium text-[#2E5440] mb-1">
-                We’re still building this support pathway.
-              </p>
-              <p className="font-sans text-sm text-[#2D2D2D]/75 leading-relaxed text-pretty">
-                Full resources for this challenge are currently being compiled. You can choose another challenge or check back soon.
-              </p>
-            </div>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleResetChallenge}
-            className="shrink-0 border-[#2E5440] text-[#2E5440] hover:bg-[#2E5440] hover:text-[#FAF7F2] text-xs sm:text-sm font-medium flex items-center gap-1.5"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Choose another challenge</span>
-          </Button>
-        </div>
-      )}
-
-      {/* 5 Selectable Cards */}
-      <div className="space-y-3.5 sm:space-y-4">
-        {cards.map((card) => {
-          const isSelected = selectedRootCause === card.id;
-
-          return (
-            <button
-              key={card.id}
-              type="button"
-              onClick={() => handleCardClick(card.id)}
-              className={`w-full p-5 sm:p-6 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-4 sm:gap-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E5440] ${
-                isSelected
-                  ? 'border-[#2E5440] bg-[#E3C9B2]/25 shadow-sm ring-1 ring-[#2E5440]'
-                  : 'border-[#A7B89F]/35 bg-white/70 hover:bg-white hover:border-[#A7B89F]/70'
-              }`}
-              aria-pressed={isSelected}
-            >
-              <div
-                className={`p-2.5 sm:p-3 rounded-lg shrink-0 transition-colors mt-0.5 ${
-                  isSelected
-                    ? 'bg-[#2E5440] text-[#FAF7F2]'
-                    : 'bg-[#FAF7F2] text-[#2E5440]'
-                }`}
-              >
-                {card.icon}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <h3
-                    className={`font-serif text-base sm:text-lg font-medium tracking-wide ${
-                      isSelected ? 'text-[#2E5440] font-semibold' : 'text-[#2D2D2D]'
-                    }`}
-                  >
-                    {card.title}
-                  </h3>
-                  {isSelected && (
-                    <span className="text-xs font-sans font-medium px-2.5 py-0.5 rounded-full bg-[#2E5440] text-[#FAF7F2]">
-                      Selected
-                    </span>
-                  )}
-                </div>
-                <p className="font-sans text-sm sm:text-base text-[#2D2D2D]/75 leading-relaxed text-pretty">
-                  {card.description}
-                </p>
-              </div>
-            </button>
-          );
+  if (choosingPrimary) return (
+    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-14 md:px-8 md:py-20">
+      <button type="button" onClick={() => setChoosingPrimary(false)} className="mb-8 inline-flex items-center gap-1.5 rounded text-sm text-[#2D2D2D]/60 focus-visible:ring-2 focus-visible:ring-[#2E5440]"><ArrowLeft className="h-4 w-4" /> Back to selected factors</button>
+      <h1 className="font-serif text-3xl text-[#2E5440] sm:text-4xl">Which is creating the most immediate risk of giving up {displayName}?</h1>
+      <p className="mt-3 text-[#2D2D2D]/80">Choose one primary issue. The others will remain contributing factors.</p>
+      <fieldset className="mt-8 space-y-3">
+        <legend className="sr-only">Primary issue</legend>
+        {selectedFactors.map((factor) => {
+          const card = cards.find(({ id }) => id === factor)!;
+          return <label key={factor} className="flex cursor-pointer items-center gap-4 rounded-xl border border-[#A7B89F]/45 bg-white/70 p-4 focus-within:ring-2 focus-within:ring-[#2E5440]"><input type="radio" name="primary-factor" checked={primaryChoice === factor} onChange={() => setPrimaryChoice(factor)} /><span className="font-medium text-[#2D2D2D]">{card.title}</span></label>;
         })}
-      </div>
+      </fieldset>
+      <Button type="button" disabled={!primaryChoice} onClick={() => primaryChoice && onConfirm(primaryChoice)} className="mt-7 bg-[#2E5440] text-[#FAF7F2]">Continue</Button>
+    </div>
+  );
 
-      {/* Housing & Behavior Pathway note */}
-      {(selectedRootCause === 'housing' || selectedRootCause === 'behavior') && (
-        <div className="mt-8 p-4 rounded-lg bg-white/80 border border-[#A7B89F]/40 text-xs sm:text-sm text-[#2D2D2D]/70 animate-fade-in flex items-center justify-between">
-          <span>
-            Selected pathway: <strong className="text-[#2E5440] uppercase">{selectedRootCause}</strong>
-          </span>
-          <button
-            type="button"
-            onClick={handleResetChallenge}
-            className="text-xs text-[#2E5440] underline hover:text-[#244232] font-medium ml-3 cursor-pointer"
-          >
-            Change
-          </button>
-        </div>
-      )}
+  const unsupportedPrimary = selectedRootCause ? cards.find(({ id }) => id === selectedRootCause)?.deepSupport === false : false;
+  return (
+    <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:px-6 sm:py-14 md:px-8 md:py-20">
+      <button type="button" onClick={onBack} className="mb-8 inline-flex items-center gap-1.5 rounded text-sm text-[#2D2D2D]/60 focus-visible:ring-2 focus-visible:ring-[#2E5440]"><ArrowLeft className="h-4 w-4" /> Back to pet information</button>
+      <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[#2E5440]/80">What’s going on?</p>
+      <h1 className="font-serif text-3xl text-[#2E5440] sm:text-4xl md:text-5xl">What’s making it difficult to keep {displayName}?</h1>
+      <p className="mt-3 text-base text-[#2D2D2D]/80 sm:text-lg">Select all that apply. You can change these choices before continuing.</p>
+      {unsupportedPrimary && <div className="mt-6 flex gap-3 rounded-xl border border-[#E3C9B2] bg-[#FAF7F2] p-5" role="status"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-[#2E5440]" /><p className="text-sm text-[#2D2D2D]/75">This factor will be saved as case context, but its deeper support pathway is still being built.</p></div>}
+      <fieldset className="mt-8 space-y-3">
+        <legend className="sr-only">Factors making it difficult to keep your pet</legend>
+        {cards.map((card) => {
+          const selected = selectedFactors.includes(card.id);
+          return <label key={card.id} className={`flex cursor-pointer items-start gap-4 rounded-2xl border p-5 focus-within:ring-2 focus-within:ring-[#2E5440] ${selected ? 'border-[#2E5440] bg-[#E3C9B2]/25' : 'border-[#A7B89F]/35 bg-white/70'}`}><input type="checkbox" checked={selected} onChange={() => toggleFactor(card.id)} className="mt-1 h-5 w-5 accent-[#2E5440]" /><span className="rounded-lg bg-[#FAF7F2] p-2.5 text-[#2E5440]">{card.icon}</span><span className="flex-1"><span className="block font-serif text-lg font-medium text-[#2D2D2D]">{card.title}</span><span className="mt-1 block text-sm text-[#2D2D2D]/75">{card.description}</span></span>{selected && <Check className="mt-1 h-5 w-5 text-[#2E5440]" aria-hidden="true" />}</label>;
+        })}
+      </fieldset>
+      <p className="mt-5 text-sm text-[#2D2D2D]/65" aria-live="polite">You selected {selectedFactors.length} {selectedFactors.length === 1 ? 'factor' : 'factors'}.</p>
+      <Button type="button" disabled={selectedFactors.length === 0} onClick={continueFromFactors} className="mt-5 bg-[#2E5440] text-[#FAF7F2]">Continue</Button>
     </div>
   );
 };

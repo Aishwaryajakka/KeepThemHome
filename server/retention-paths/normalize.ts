@@ -16,7 +16,8 @@ export const normalizeHousingCase = (
   const factorValue = (type: string) => factors.find((factor) => factor.factorType === type)?.factorValue;
   const goal = caseRecord.goal ?? factorValue('goal') ?? null;
   const behaviorValue = factorValue('behavior_contributor') ?? factorValue('contributing_barrier');
-  const behaviorConcern = factorValue('behavior_concern');
+  const behaviorConcern = factorValue('behavior_concern')
+    ?? factors.find((factor) => factor.factorType.startsWith('behavior_concern_') && factor.factorValue)?.factorValue;
   const behaviorContributor: RequirementState = behaviorValue?.toLowerCase() === 'behavior' || behaviorConcern
     ? true
     : explicitBoolean(behaviorValue);

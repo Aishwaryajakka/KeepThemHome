@@ -19,6 +19,13 @@ export const behaviorConcernSchema = z.enum([
   'Leash or walking problems',
   'Conflict with another animal',
   'Growling, biting, or aggression',
+  'Difficulty around other dogs',
+  'Difficulty around cats or other animals',
+  'Difficulty around children or people',
+  'Resource guarding',
+  'Escape or roaming',
+  'Fear or anxiety',
+  'High energy or exercise needs',
 ]);
 
 export const behaviorSeriousnessSchema = z.enum([
@@ -54,7 +61,7 @@ export const intakeExtractionSchema = z.object({
   petName: z.string().trim().min(1).max(100).nullable(),
   petType: petTypeSchema.nullable(),
   primaryBarrier: primaryBarrierSchema.nullable(),
-  contributingBarriers: z.array(primaryBarrierSchema).max(4)
+  contributingBarriers: z.array(primaryBarrierSchema).max(6)
     .refine((values) => new Set(values).size === values.length, 'Contributing barriers must be unique'),
   housingSituation: housingSituationSchema.nullable(),
   behaviorConcern: behaviorConcernSchema.nullable(),
@@ -94,7 +101,7 @@ export const intakeJsonSchema = {
     petName: { type: ['string', 'null'], minLength: 1, maxLength: 100 },
     petType: nullableEnum(petTypeSchema.options),
     primaryBarrier: nullableEnum(primaryBarrierSchema.options),
-    contributingBarriers: { type: 'array', items: { type: 'string', enum: primaryBarrierSchema.options }, maxItems: 4, uniqueItems: true },
+    contributingBarriers: { type: 'array', items: { type: 'string', enum: primaryBarrierSchema.options }, maxItems: 6, uniqueItems: true },
     housingSituation: nullableEnum(housingSituationSchema.options),
     behaviorConcern: nullableEnum(behaviorConcernSchema.options),
     behaviorSeriousness: nullableEnum(behaviorSeriousnessSchema.options),

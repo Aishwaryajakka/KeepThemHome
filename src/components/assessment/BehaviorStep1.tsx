@@ -2,36 +2,28 @@ import React from 'react';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AssessmentProgress from './AssessmentProgress';
-import type { BehaviorConcern } from '@/types/assessment';
+import { BEHAVIOR_CONCERN_OPTIONS, type BehaviorConcern } from '@/types/assessment';
 
 interface BehaviorStep1Props {
   petName: string;
-  selectedConcern: BehaviorConcern;
-  onSelectConcern: (concern: BehaviorConcern) => void;
+  selectedConcerns: Exclude<BehaviorConcern, ''>[];
+  onToggleConcern: (concern: Exclude<BehaviorConcern, ''>) => void;
   onContinue: () => void;
   onBack: () => void;
 }
 
 export const BehaviorStep1: React.FC<BehaviorStep1Props> = ({
   petName,
-  selectedConcern,
-  onSelectConcern,
+  selectedConcerns,
+  onToggleConcern,
   onContinue,
   onBack,
 }) => {
   const displayName = petName.trim() || 'your pet';
 
-  const options: BehaviorConcern[] = [
-    'Barking or excessive noise',
-    'Destructive behavior',
-    'House-training problems',
-    'Separation-related behavior',
-    'Leash or walking problems',
-    'Conflict with another animal',
-    'Growling, biting, or aggression',
-  ];
+  const options = BEHAVIOR_CONCERN_OPTIONS;
 
-  const isContinueEnabled = selectedConcern !== '';
+  const isContinueEnabled = selectedConcerns.length > 0;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +57,7 @@ export const BehaviorStep1: React.FC<BehaviorStep1Props> = ({
           What behavior is making things difficult with {displayName}?
         </h1>
         <p className="font-sans text-base sm:text-lg text-[#2D2D2D]/80 leading-relaxed text-pretty">
-          Choose the issue that feels most important right now.
+          Select all that apply.
         </p>
       </div>
 
@@ -73,19 +65,17 @@ export const BehaviorStep1: React.FC<BehaviorStep1Props> = ({
       <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
         <div className="space-y-3 sm:space-y-3.5">
           {options.map((option) => {
-            const isSelected = selectedConcern === option;
+            const isSelected = selectedConcerns.includes(option);
             return (
-              <button
+              <label
                 key={option}
-                type="button"
-                onClick={() => onSelectConcern(option)}
-                className={`w-full p-4 sm:p-5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E5440] ${
+                className={`w-full p-4 sm:p-5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-4 focus-within:ring-2 focus-within:ring-[#2E5440] ${
                   isSelected
                     ? 'border-[#2E5440] bg-[#E3C9B2]/25 shadow-sm ring-1 ring-[#2E5440]'
                     : 'border-[#A7B89F]/35 bg-white/70 hover:bg-white hover:border-[#A7B89F]/70'
                 }`}
-                aria-pressed={isSelected}
               >
+                <input type="checkbox" checked={isSelected} onChange={() => onToggleConcern(option)} className="h-5 w-5 shrink-0 accent-[#2E5440]" />
                 <span
                   className={`font-sans text-base sm:text-lg leading-snug ${
                     isSelected ? 'text-[#2E5440] font-medium' : 'text-[#2D2D2D]'
@@ -103,7 +93,7 @@ export const BehaviorStep1: React.FC<BehaviorStep1Props> = ({
                 >
                   {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </div>
-              </button>
+              </label>
             );
           })}
         </div>

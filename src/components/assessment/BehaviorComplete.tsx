@@ -13,11 +13,15 @@ import type {
   BehaviorSeriousness,
   BehaviorTried,
   BehaviorBarrier,
+  BarrierType,
 } from '@/types/assessment';
 
 interface BehaviorCompleteProps {
   petName: string;
   concern: BehaviorConcern;
+  concerns?: Exclude<BehaviorConcern, ''>[];
+  contributingBarriers?: BarrierType[];
+  costConstraint?: string;
   seriousness: BehaviorSeriousness;
   tried: BehaviorTried;
   barrier: BehaviorBarrier;
@@ -29,6 +33,9 @@ interface BehaviorCompleteProps {
 export const BehaviorComplete: React.FC<BehaviorCompleteProps> = ({
   petName,
   concern,
+  concerns = concern ? [concern] : [],
+  contributingBarriers = [],
+  costConstraint = '',
   seriousness,
   tried,
   barrier,
@@ -96,7 +103,7 @@ export const BehaviorComplete: React.FC<BehaviorCompleteProps> = ({
               Main concern
             </dt>
             <dd className="text-sm sm:text-base font-medium text-[#2D2D2D]">
-              {concern || 'Not specified'}
+              {concerns.join(', ') || 'Not specified'}
             </dd>
           </div>
 
@@ -126,6 +133,20 @@ export const BehaviorComplete: React.FC<BehaviorCompleteProps> = ({
               {barrier || 'Not specified'}
             </dd>
           </div>
+
+          {contributingBarriers.length > 0 && (
+            <div className="space-y-1 sm:col-span-2">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/70 font-sans">Also affecting the situation</dt>
+              <dd className="text-sm sm:text-base font-medium text-[#2D2D2D]">{contributingBarriers.join(', ')}</dd>
+            </div>
+          )}
+
+          {costConstraint && (
+            <div className="space-y-1 sm:col-span-2">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/70 font-sans">Cost constraint</dt>
+              <dd className="text-sm sm:text-base font-medium text-[#2D2D2D]">{costConstraint}</dd>
+            </div>
+          )}
         </dl>
       </div>
 

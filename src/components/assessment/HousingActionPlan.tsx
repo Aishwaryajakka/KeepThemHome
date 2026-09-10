@@ -13,6 +13,7 @@ import { matchHousingResources } from '@/data/resources';
 import {
   caseApi,
   type CasePlan,
+  type ExplanationResponse,
   type RetentionPathResult,
   type SupportedChangeCode,
   type UnlockResponse,
@@ -45,6 +46,7 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   const [unlockingPath, setUnlockingPath] = useState<string | null>(null);
   const [unlockResults, setUnlockResults] = useState<Record<string, UnlockResponse>>({});
   const [unlockErrors, setUnlockErrors] = useState<Record<string, boolean>>({});
+  const [explanations, setExplanations] = useState<Record<string, ExplanationResponse>>({});
   const fallbackResources = matchHousingResources(situation, timing, goal);
   const matchedResources = backendPlan
     ? backendPlan.interventions.flatMap(({ resources }) => resources).slice(0, 3)
@@ -65,6 +67,22 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
       });
     return () => { active = false; };
   }, [backendCaseId]);
+
+  useEffect(() => {
+    if (!backendCaseId || !retentionPaths) return;
+    let active = true;
+    const changes = appliedChanges;
+    for (const path of retentionPaths) {
+      void caseApi.getPathExplanation(backendCaseId, path.key, 'PATH_SUMMARY', changes)
+        .then((result) => {
+          if (active) setExplanations((current) => ({ ...current, [path.key]: result }));
+        })
+        .catch(() => {
+          // Solver output and its existing deterministic explanation remain visible.
+        });
+    }
+    return () => { active = false; };
+  }, [backendCaseId, retentionPaths, appliedChanges]);
 
   useEffect(() => {
     if (!backendCaseId) {
@@ -104,6 +122,7 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
     ]));
     try {
       const response = await caseApi.getRetentionPaths(backendCaseId, nextChanges);
+      setExplanations({});
       setAppliedChanges(nextChanges);
       setRetentionPaths(response.paths);
       setUnlockResults({});
@@ -117,6 +136,7 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
     if (!backendCaseId) return;
     try {
       const response = await caseApi.getRetentionPaths(backendCaseId, []);
+      setExplanations({});
       setAppliedChanges([]);
       setRetentionPaths(response.paths);
       setUnlockResults({});
@@ -222,6 +242,17 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
             <p className="font-sans text-sm sm:text-base text-[#2D2D2D]/80 leading-relaxed mb-5">
               {path.objective}
             </p>
+            {explanations[path.key] && (
+              <aside className="mb-5 rounded-xl border border-[#A7B89F]/30 bg-[#F4F0E7]/60 p-4" aria-label={`Plain-language explanation for ${path.title}`}>
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-[#2E5440]/70">
+                  Plain-language explanation
+                  {explanations[path.key].source === 'deterministic' ? ' · standard summary' : ''}
+                </p>
+                <p className="mt-2 text-sm leading-relaxed text-[#2D2D2D]/80">{explanations[path.key].explanation.summary}</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#2D2D2D]/75">{explanations[path.key].explanation.why}</p>
+                <p className="mt-2 text-sm font-medium leading-relaxed text-[#2E5440]">{explanations[path.key].explanation.nextStep}</p>
+              </aside>
+            )}
             <ol className="space-y-4 mb-5">
               {path.steps.map((step, stepIndex) => (
                 <li key={step.key} className="pl-4 border-l-2 border-[#A7B89F]/50">

@@ -43,7 +43,8 @@ const reachRootCause = async () => {
 
 const reachHousingPlan = async () => {
   const user = await reachRootCause();
-  await user.click(screen.getByRole('button', { name: /HOUSING/ }));
+  await user.click(screen.getByRole('checkbox', { name: /^Housing/ }));
+  await user.click(screen.getByRole('button', { name: 'Continue' }));
   await user.click(screen.getByRole('button', { name: /My landlord or property says pets aren’t allowed/ }));
   await user.click(screen.getByRole('button', { name: 'Continue' }));
   await user.click(screen.getByRole('button', { name: 'This week' }));
@@ -92,6 +93,45 @@ describe('Keep Them Home demo flows', () => {
     expect(await screen.findByText('Housing issue')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Continue with these details' }));
     expect(screen.getByRole('heading', { name: /stay where you are or move/ })).toBeInTheDocument();
+    await waitFor(() => {
+      const stored = JSON.parse(sessionStorage.getItem(ASSESSMENT_SESSION_KEY) ?? '{}');
+      expect(stored.caseState?.selectedFactors).toEqual(['housing', 'behavior', 'cost']);
+      expect(stored.caseState?.behavior.concerns).toEqual(['Barking or excessive noise']);
+      expect(stored.caseState?.housing.goal).toBe('');
+    });
+  });
+
+  it('completes the Luna Housing, Behavior, and Money multi-factor review', async () => {
+    const user = await reachRootCause();
+    await user.click(screen.getByRole('checkbox', { name: /^Housing/ }));
+    await user.click(screen.getByRole('checkbox', { name: /^Behavior/ }));
+    await user.click(screen.getByRole('checkbox', { name: /^Money/ }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('radio', { name: 'Housing' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await user.click(screen.getByRole('checkbox', { name: 'Barking or excessive noise' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Frustrating, but manageable' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Nothing yet' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Cost' }));
+    await user.click(screen.getByRole('button', { name: 'See my options' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await user.click(screen.getByRole('button', { name: /My landlord or property says pets aren’t allowed/ }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'This week' }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('button', { name: 'Stay where I am' }));
+    await user.click(screen.getByRole('button', { name: 'See my options' }));
+
+    expect(screen.getByText('Behavior, Money / financial strain')).toBeInTheDocument();
+    expect(screen.getByText('Barking or excessive noise')).toBeInTheDocument();
+    expect(screen.getByText('Cannot afford behavior help')).toBeInTheDocument();
+    expect(screen.getByText('This week')).toBeInTheDocument();
+    expect(screen.getByText('Stay where I am')).toBeInTheDocument();
   });
 
   it('accepts Luna and Dog, then reaches the Housing pathway', async () => {
@@ -101,7 +141,8 @@ describe('Keep Them Home demo flows', () => {
     expect(screen.getByRole('button', { name: 'Dog' })).toHaveAttribute('aria-pressed', 'true');
 
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: /HOUSING/ }));
+    await user.click(screen.getByRole('checkbox', { name: /^Housing/ }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(screen.getByRole('heading', { name: 'What’s happening with your housing?' })).toBeInTheDocument();
   });
@@ -132,8 +173,9 @@ describe('Keep Them Home demo flows', () => {
 
   it('shows the immediate Behavior safety notice', async () => {
     const user = await reachRootCause();
-    await user.click(screen.getByRole('button', { name: /BEHAVIOR/ }));
-    await user.click(screen.getByRole('button', { name: 'Barking or excessive noise' }));
+    await user.click(screen.getByRole('checkbox', { name: /^Behavior/ }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
+    await user.click(screen.getByRole('checkbox', { name: 'Barking or excessive noise' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('button', { name: /immediate safety concern/ }));
 
@@ -145,7 +187,7 @@ describe('Keep Them Home demo flows', () => {
       version: ASSESSMENT_SESSION_VERSION,
       caseState: {
         ...initialAssessmentCase,
-        petName: 'Luna', petType: 'dog', rootCause: 'behavior', currentScreen: 'behavior-2',
+        petName: 'Luna', petType: 'dog', rootCause: 'behavior', selectedFactors: ['behavior'], currentScreen: 'behavior-2',
         behavior: { ...initialAssessmentCase.behavior, seriousness: 'There’s an immediate safety concern' },
       },
     }));
@@ -171,6 +213,7 @@ describe('Keep Them Home demo flows', () => {
         petName: 'Luna',
         petType: 'dog',
         rootCause: 'housing',
+        selectedFactors: ['housing'],
         housing: {
           situation: 'My landlord or property says pets aren’t allowed',
           urgency: 'This week',
@@ -201,7 +244,8 @@ describe('Keep Them Home demo flows', () => {
     const user = await reachRootCause();
     const pushState = vi.spyOn(window.history, 'pushState');
 
-    await user.click(screen.getByRole('button', { name: /HOUSING/ }));
+    await user.click(screen.getByRole('checkbox', { name: /^Housing/ }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(pushState).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('heading', { name: 'What’s happening with your housing?' })).toBeInTheDocument();
@@ -210,7 +254,7 @@ describe('Keep Them Home demo flows', () => {
   it('moves backward and forward through logical screens with browser history', async () => {
     const user = await enterLuna();
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    expect(screen.getByRole('heading', { name: /What’s making it hard/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /What’s making it difficult/ })).toBeInTheDocument();
 
     window.history.back();
     await waitFor(() => {
@@ -220,7 +264,7 @@ describe('Keep Them Home demo flows', () => {
 
     window.history.forward();
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /What’s making it hard/ })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /What’s making it difficult/ })).toBeInTheDocument();
     });
   });
 
@@ -229,7 +273,7 @@ describe('Keep Them Home demo flows', () => {
     const user = await enterLuna();
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
-    expect(screen.getByRole('heading', { name: /What’s making it hard/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /What’s making it difficult/ })).toBeInTheDocument();
   });
 
   it('retains a successful backend ID and avoids duplicate case creation', async () => {
@@ -243,7 +287,8 @@ describe('Keep Them Home demo flows', () => {
       expect(stored.caseState?.backendCaseId).toBe(backendCase.id);
     });
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: /HOUSING/ }));
+    await user.click(screen.getByRole('checkbox', { name: /^Housing/ }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(createCase).toHaveBeenCalledTimes(1);
   });
@@ -255,7 +300,8 @@ describe('Keep Them Home demo flows', () => {
     const user = await enterLuna();
     await waitFor(() => expect(caseApi.updateCase).toHaveBeenCalled());
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: /HOUSING/ }));
+    await user.click(screen.getByRole('checkbox', { name: /^Housing/ }));
+    await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(screen.getByRole('heading', { name: 'What’s happening with your housing?' })).toBeInTheDocument();
   });

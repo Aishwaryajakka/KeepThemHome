@@ -1,5 +1,5 @@
 export type ApiPetType = 'dog' | 'cat' | 'other';
-export type ApiBarrier = 'housing' | 'behavior' | 'cost' | 'medical' | 'circumstances';
+export type ApiBarrier = 'housing' | 'behavior' | 'cost' | 'medical' | 'temporary_crisis' | 'time_capacity' | 'circumstances';
 export type ApiCaseStatus = 'active' | 'keeping' | 'still_trying' | 'rehoming_help' | 'closed';
 export type ApiOutcomeStatus = 'keeping' | 'still_trying' | 'rehoming_help';
 
@@ -149,6 +149,26 @@ export interface UnlockResponse {
   currentPathEvaluation: RetentionPathResult;
 }
 
+export type ExplanationMode = 'PATH_SUMMARY' | 'BLOCKER_EXPLANATION' | 'UNLOCK_EXPLANATION' | 'ACTION_PLAN_SUMMARY';
+
+export interface PathExplanation {
+  status: RetentionPathStatus;
+  isHypothetical: boolean;
+  headline: string;
+  summary: string;
+  why: string;
+  nextStep: string;
+  resourceNames: string[];
+}
+
+export interface ExplanationResponse {
+  explanation: PathExplanation;
+  source: 'generated' | 'deterministic';
+  grounded: { pathKey: string; status: RetentionPathStatus; rank: number; isHypothetical: boolean };
+}
+
+const explanationCache = new Map<string, Promise<ExplanationResponse>>();
+
 const requestJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(url, {
     ...init,
@@ -194,4 +214,21 @@ export const caseApi = {
     requestJson<UnlockResponse>(`/api/cases/${id}/paths/${pathKey}/unlock`, {
       method: 'POST', body: JSON.stringify({ appliedChanges }),
     }),
+
+  getPathExplanation: async (
+    id: string,
+    pathKey: string,
+    mode: ExplanationMode,
+    appliedChanges: SupportedChangeCode[] = [],
+  ) => {
+    const key = JSON.stringify([id, pathKey, mode, [...appliedChanges].sort()]);
+    const cached = explanationCache.get(key);
+    if (cached) return cached;
+    const request = requestJson<ExplanationResponse>(`/api/cases/${id}/explain`, {
+      method: 'POST', body: JSON.stringify({ pathKey, mode, appliedChanges }),
+    });
+    explanationCache.set(key, request);
+    request.catch(() => explanationCache.delete(key));
+    return request;
+  },
 };

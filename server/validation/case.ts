@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const uuidSchema = z.string().uuid();
 
 export const petTypeSchema = z.enum(['dog', 'cat', 'other']);
-export const primaryBarrierSchema = z.enum(['housing', 'behavior', 'cost', 'medical', 'circumstances']);
+export const primaryBarrierSchema = z.enum(['housing', 'behavior', 'cost', 'medical', 'temporary_crisis', 'time_capacity', 'circumstances']);
 export const urgencySchema = z.enum(['Today or within 48 hours', 'This week', 'Within a month', 'I’m planning ahead']);
 export const goalSchema = z.enum(['Stay where I am', 'Move', 'Either could work']);
 export const caseStatusSchema = z.enum(['active', 'keeping', 'still_trying', 'rehoming_help', 'closed']);
@@ -38,8 +38,11 @@ export const factorSchema = z.object({
 }).strict();
 
 export const createFactorsSchema = z.object({
-  factors: z.array(factorSchema).min(1).max(20),
-}).strict();
+  factors: z.array(factorSchema).min(1).max(40),
+}).strict().refine(
+  ({ factors }) => new Set(factors.map(({ factorType, source }) => `${source}:${factorType}`)).size === factors.length,
+  'Duplicate factor keys are not allowed',
+);
 
 export const createOutcomeSchema = z.object({
   status: outcomeStatusSchema,
