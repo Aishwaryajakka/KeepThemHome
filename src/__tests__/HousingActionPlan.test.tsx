@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HousingActionPlan from '@/components/assessment/HousingActionPlan';
@@ -171,5 +171,40 @@ describe('HousingActionPlan backend fallback', () => {
     await waitFor(() => expect(caseApi.getRetentionPaths).toHaveBeenLastCalledWith(props.backendCaseId, []));
     expect(await screen.findByText('BLOCKED')).toBeInTheDocument();
     expect(screen.queryByText('Viewing a hypothetical scenario. Your current case has not changed.')).not.toBeInTheDocument();
+  });
+
+  it('renders deduplicated evidence citations as safe external links without replacing resources', async () => {
+    vi.spyOn(caseApi, 'getPlan').mockRejectedValue(new Error('plan unavailable'));
+    vi.spyOn(caseApi, 'getPathExplanation').mockRejectedValue(new Error('explanation unavailable'));
+    vi.spyOn(caseApi, 'getRetentionPaths').mockResolvedValue({
+      caseId: props.backendCaseId,
+      facts: { primaryBarrier: 'housing', situation: props.situation, urgency: props.timing, goal: props.goal, behaviorContributor: true, costConstraint: 'Cannot afford behavior help' },
+      appliedChanges: [],
+      paths: [{
+        key: 'remain_in_current_housing', title: 'Stay in current housing with your pet', objective: 'Remain together.',
+        status: 'CONDITIONAL', statusReason: 'Requirements are unknown.', blockers: [], reasonCodes: [], rankScore: 1, friction: 1,
+        steps: [{ key: 'clarify', title: 'Clarify restriction', description: 'Check the policy.', resources: [] }],
+      }],
+    });
+    vi.spyOn(caseApi, 'getPathEvidence').mockResolvedValue({
+      caseId: props.backendCaseId, pathKey: 'remain_in_current_housing',
+      whyThisApproach: 'Housing, Behavior, Cost are all affecting this case.',
+      evidence: [{
+        id: 'aspca-housing', organization: 'ASPCA', title: 'Pet-Friendly Housing and Renters',
+        url: 'https://www.aspca.org/example', publicationYear: null, sourceType: 'industry_guidance',
+        summary: 'Curated source summary.', whyRelevant: 'Housing is the primary barrier in this case.',
+        claims: [{ code: 'HOUSING_SURRENDER_DRIVER', label: 'Housing pressure', summary: 'Housing problems are documented contributors to rehoming.' }],
+      }],
+    });
+
+    render(<HousingActionPlan {...props} />);
+    const evidence = await screen.findByLabelText('Evidence for Stay in current housing with your pet');
+    expect(within(evidence).getByText('ASPCA')).toBeInTheDocument();
+    expect(within(evidence).getByText('Pet-Friendly Housing and Renters')).toBeInTheDocument();
+    const source = within(evidence).getByRole('link', { name: 'View source' });
+    expect(source).toHaveAttribute('href', 'https://www.aspca.org/example');
+    expect(source).toHaveAttribute('target', '_blank');
+    expect(source).toHaveAttribute('rel', 'noopener noreferrer');
+    expect(screen.getByText(/not a guarantee of eligibility, availability, or success/i)).toBeInTheDocument();
   });
 });

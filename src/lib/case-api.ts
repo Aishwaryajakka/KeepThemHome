@@ -167,6 +167,31 @@ export interface ExplanationResponse {
   grounded: { pathKey: string; status: RetentionPathStatus; rank: number; isHypothetical: boolean };
 }
 
+export interface EvidenceClaim {
+  code: string;
+  label: string;
+  summary: string;
+}
+
+export interface PathEvidenceCard {
+  id: string;
+  organization: string;
+  title: string;
+  url: string;
+  publicationYear: number | null;
+  sourceType: 'research' | 'industry_guidance' | 'industry_data';
+  summary: string;
+  whyRelevant: string;
+  claims: EvidenceClaim[];
+}
+
+export interface PathEvidenceResponse {
+  caseId: string;
+  pathKey: string;
+  whyThisApproach: string;
+  evidence: PathEvidenceCard[];
+}
+
 const explanationCache = new Map<string, Promise<ExplanationResponse>>();
 
 const requestJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
@@ -214,6 +239,9 @@ export const caseApi = {
     requestJson<UnlockResponse>(`/api/cases/${id}/paths/${pathKey}/unlock`, {
       method: 'POST', body: JSON.stringify({ appliedChanges }),
     }),
+
+  getPathEvidence: async (id: string, pathKey: string) =>
+    requestJson<PathEvidenceResponse>(`/api/cases/${id}/paths/${pathKey}/evidence`),
 
   getPathExplanation: async (
     id: string,

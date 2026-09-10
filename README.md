@@ -98,3 +98,11 @@ Pass 8 extractions merge into the same selected, primary, contributing, Behavior
 Groq explains this payload using strict structured output followed by Zod validation and deterministic checks for status, hypothetical state, resource names, and URLs. What-if explanations must remain explicitly hypothetical. If configuration, generation, or validation fails, deterministic prose is returned while path cards, blockers, resources, and counterfactual controls remain usable.
 
 Generated prose never replaces or rewrites the deterministic Behavior safety notice. Groq is explanation-only: it does not calculate feasibility, ranking, blockers, resource scores, or Smallest Unlock, and it receives no raw owner story.
+
+## Curated evidence and citations
+
+Evidence and resources are deliberately separate. Evidence explains why an intervention area is supported by established research or industry guidance; a resource is a place an owner may investigate for practical help. Neither establishes eligibility, availability, or individual success.
+
+The server owns a small typed catalog of six curated sources from ASPCA, Best Friends Animal Society, and Human Animal Support Services. Each source has a canonical HTTPS URL, an application-authored summary, and controlled claim codes. `GET /api/cases/:id/paths/:pathKey/evidence` reloads the persisted case, recomputes its trusted path, and deterministically ranks sources from direct intervention matches through case-factor matches to broader multi-factor context. The browser cannot submit claims or source URLs.
+
+Evidence is supporting context only: it cannot change path feasibility, ranking, blockers, resources, or Smallest Unlock. Citation cards link directly to canonical publishers and remain available without Groq or live source fetching. No percentages are converted into individual predictions.

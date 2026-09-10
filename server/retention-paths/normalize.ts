@@ -35,6 +35,11 @@ export const normalizeHousingCase = (
 
   return {
     primaryBarrier: caseRecord.primaryBarrier ?? factorValue('primary_barrier') ?? null,
+    contributingBarriers: Array.from(new Set(factors
+      .filter(({ factorType, factorValue: value }) => (
+        (factorType.startsWith('contributing_') || factorType === 'behavior_contributor') && value
+      ))
+      .map(({ factorValue: value }) => value!))),
     situation: factorValue('housing_situation') ?? null,
     urgency: caseRecord.urgency ?? factorValue('urgency') ?? null,
     goal,

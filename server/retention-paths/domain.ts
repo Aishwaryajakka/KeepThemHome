@@ -14,6 +14,7 @@ export type ConstraintKey =
 
 export interface NormalizedHousingCase {
   primaryBarrier: string | null;
+  contributingBarriers?: string[];
   situation: string | null;
   urgency: string | null;
   goal: string | null;

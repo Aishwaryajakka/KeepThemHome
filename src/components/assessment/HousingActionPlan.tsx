@@ -14,6 +14,7 @@ import {
   caseApi,
   type CasePlan,
   type ExplanationResponse,
+  type PathEvidenceResponse,
   type RetentionPathResult,
   type SupportedChangeCode,
   type UnlockResponse,
@@ -47,6 +48,7 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   const [unlockResults, setUnlockResults] = useState<Record<string, UnlockResponse>>({});
   const [unlockErrors, setUnlockErrors] = useState<Record<string, boolean>>({});
   const [explanations, setExplanations] = useState<Record<string, ExplanationResponse>>({});
+  const [pathEvidence, setPathEvidence] = useState<Record<string, PathEvidenceResponse>>({});
   const fallbackResources = matchHousingResources(situation, timing, goal);
   const matchedResources = backendPlan
     ? backendPlan.interventions.flatMap(({ resources }) => resources).slice(0, 3)
@@ -83,6 +85,21 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
     }
     return () => { active = false; };
   }, [backendCaseId, retentionPaths, appliedChanges]);
+
+  useEffect(() => {
+    if (!backendCaseId || !retentionPaths) return;
+    let active = true;
+    for (const path of retentionPaths) {
+      void caseApi.getPathEvidence(backendCaseId, path.key)
+        .then((result) => {
+          if (active) setPathEvidence((current) => ({ ...current, [path.key]: result }));
+        })
+        .catch(() => {
+          // Evidence is supporting context; the trusted path remains usable without it.
+        });
+    }
+    return () => { active = false; };
+  }, [backendCaseId, retentionPaths]);
 
   useEffect(() => {
     if (!backendCaseId) {
@@ -282,6 +299,35 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
                 </ul>
               )}
             </details>
+            {pathEvidence[path.key]?.evidence.length > 0 && (
+              <aside className="mt-5 border-t border-[#A7B89F]/30 pt-5" aria-label={`Evidence for ${path.title}`}>
+                <h3 className="font-serif text-xl text-[#2E5440]">Why these areas matter</h3>
+                <p className="mt-1 text-sm text-[#2D2D2D]/75">{pathEvidence[path.key].whyThisApproach}</p>
+                <div className="mt-4 space-y-3">
+                  {pathEvidence[path.key].evidence.map((source) => (
+                    <div key={source.id} className="rounded-xl border border-[#A7B89F]/30 bg-[#FAF7F2]/70 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-[#2E5440]/70">{source.organization}</p>
+                      <p className="mt-1 font-serif text-lg text-[#2E5440]">{source.title}</p>
+                      <p className="mt-2 text-sm leading-relaxed text-[#2D2D2D]/75">{source.whyRelevant}</p>
+                      {source.claims.map((claim) => (
+                        <p key={claim.code} className="mt-1 text-sm leading-relaxed text-[#2D2D2D]/70">{claim.summary}</p>
+                      ))}
+                      <a
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex items-center gap-1.5 rounded text-sm font-semibold text-[#2E5440] underline decoration-[#A7B89F] underline-offset-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E5440]"
+                      >
+                        View source <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 text-xs leading-relaxed text-[#2D2D2D]/60">
+                  These sources support the intervention areas, not a guarantee of eligibility, availability, or success for this case.
+                </p>
+              </aside>
+            )}
             {path.status !== 'FEASIBLE' && (
               <div className="mt-4">
                 <Button
