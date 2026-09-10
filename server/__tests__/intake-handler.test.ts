@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { describe, expect, it, vi } from 'vitest';
-import { createIntakeHandler } from '../../api/intake/extract';
+import { createIntakeHandler } from '../api-handlers/intake/extract';
 import { ExtractionFailedError } from '../intake/groq';
 import { lunaExtraction } from './intake.test';
 

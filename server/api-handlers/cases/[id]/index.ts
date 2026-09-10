@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, parseBody, safeServerError } from '../../../server/http';
-import { resolveAppUser, type AppUserResolver } from '../../../server/services/auth-service';
-import { getCaseFactors, getOutcomes, updateOwnedCase } from '../../../server/services/case-service';
-import { getOwnedCase, getOwnedPet } from '../../../server/services/ownership-service';
-import { updateCaseSchema, uuidSchema } from '../../../server/validation/case';
+import { methodNotAllowed, parseBody, safeServerError } from '../../../http';
+import { resolveAppUser, type AppUserResolver } from '../../../services/auth-service';
+import { getCaseFactors, getOutcomes, updateOwnedCase } from '../../../services/case-service';
+import { getOwnedCase, getOwnedPet } from '../../../services/ownership-service';
+import { updateCaseSchema, uuidSchema } from '../../../validation/case';
 
 export const createCaseHandler = (resolveUser: AppUserResolver = resolveAppUser, services = { getOwnedCase, getOwnedPet, getCaseFactors, getOutcomes, updateOwnedCase }) => async (request: VercelRequest, response: VercelResponse) => {
   if (!['GET', 'PATCH'].includes(request.method ?? '')) return methodNotAllowed(response, ['GET', 'PATCH']);

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { describe, expect, it, vi } from 'vitest';
-import { createUnlockHandler } from '../../api/cases/[id]/paths/[pathKey]/unlock';
+import { createUnlockHandler } from '../api-handlers/cases/[id]/paths/[pathKey]/unlock';
 
 const caseId = '550e8400-e29b-41d4-a716-446655440000';
 const owned = vi.fn(async () => ({ status: 'ok' as const, user: { id: 'user-a' }, caseRecord: { id: caseId } } as never));

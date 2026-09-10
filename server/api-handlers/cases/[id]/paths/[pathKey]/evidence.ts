@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, safeServerError } from '../../../../../server/http';
-import { EvidencePathNotFoundError, getCasePathEvidence } from '../../../../../server/services/evidence-service';
-import { uuidSchema } from '../../../../../server/validation/case';
-import { pathKeySchema } from '../../../../../server/validation/counterfactual';
-import { resolveOwnedCase, type OwnedCaseResolver } from '../../../../../server/services/ownership-service';
+import { methodNotAllowed, safeServerError } from '../../../../../http';
+import { EvidencePathNotFoundError, getCasePathEvidence } from '../../../../../services/evidence-service';
+import { uuidSchema } from '../../../../../validation/case';
+import { pathKeySchema } from '../../../../../validation/counterfactual';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../../../services/ownership-service';
 
 type EvidenceGetter = typeof getCasePathEvidence;
 

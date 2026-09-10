@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, parseBody, safeServerError } from '../../../server/http';
-import { addCaseFactors, getCaseFactors } from '../../../server/services/case-service';
-import { resolveOwnedCase, type OwnedCaseResolver } from '../../../server/services/ownership-service';
-import { createFactorsSchema, uuidSchema } from '../../../server/validation/case';
+import { methodNotAllowed, parseBody, safeServerError } from '../../../http';
+import { addCaseFactors, getCaseFactors } from '../../../services/case-service';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../services/ownership-service';
+import { createFactorsSchema, uuidSchema } from '../../../validation/case';
 
 export const createFactorsHandler = (authorize: OwnedCaseResolver = resolveOwnedCase) => async (request: VercelRequest, response: VercelResponse) => {
   const parsedId = uuidSchema.safeParse(request.query.id);

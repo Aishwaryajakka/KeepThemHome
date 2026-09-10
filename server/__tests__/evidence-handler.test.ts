@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { describe, expect, it, vi } from 'vitest';
-import { createEvidenceHandler } from '../../api/cases/[id]/paths/[pathKey]/evidence';
+import { createEvidenceHandler } from '../api-handlers/cases/[id]/paths/[pathKey]/evidence';
 import { getCasePathEvidence } from '../services/evidence-service';
 import type { NormalizedHousingCase, PathEvaluation } from '../retention-paths/domain';
 
