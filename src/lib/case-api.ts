@@ -63,6 +63,52 @@ export interface CasePlan {
   interventions: PlanIntervention[];
 }
 
+export type RetentionPathStatus = 'FEASIBLE' | 'CONDITIONAL' | 'BLOCKED';
+
+export interface RetentionPathBlocker {
+  code: string;
+  type: 'PRECONDITION';
+  field: string;
+  currentValue: false | 'unknown';
+  requiredCondition: string;
+  status: 'KNOWN_CONFLICT' | 'UNKNOWN';
+  label: string;
+}
+
+export interface RetentionPathStep {
+  key: string;
+  title: string;
+  description: string;
+  interventionKey?: string;
+  resources: PlanResource[];
+}
+
+export interface RetentionPathResult {
+  key: string;
+  title: string;
+  objective: string;
+  status: RetentionPathStatus;
+  statusReason: string;
+  steps: RetentionPathStep[];
+  blockers: RetentionPathBlocker[];
+  reasonCodes: string[];
+  rankScore: number;
+  friction: number;
+}
+
+export interface RetentionPathsResponse {
+  caseId: string;
+  facts: {
+    primaryBarrier: string | null;
+    situation: string | null;
+    urgency: string | null;
+    goal: string | null;
+    behaviorContributor: true | false | 'unknown';
+    costConstraint: string | null;
+  };
+  paths: RetentionPathResult[];
+}
+
 const requestJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(url, {
     ...init,
@@ -98,4 +144,7 @@ export const caseApi = {
 
   getPlan: async (id: string) =>
     requestJson<CasePlan>(`/api/cases/${id}/plan`, { method: 'POST' }),
+
+  getRetentionPaths: async (id: string) =>
+    requestJson<RetentionPathsResponse>(`/api/cases/${id}/paths`, { method: 'POST' }),
 };

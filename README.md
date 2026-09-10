@@ -50,3 +50,17 @@ pnpm db:verify
 ```
 
 The eight verified resource records remain in `src/data/resources.ts` as the offline/demo fallback and seed source. Their factual content, URLs, verification date, and local matching behavior are unchanged.
+
+## Retention Path Solver
+
+The server-side Retention Path Solver answers which distinct Housing strategies could keep a pet with its owner. Source-controlled path definitions declare ordered intervention steps and explicit preconditions. Persisted case fields and structured factors are normalized into known-true, known-false, or unknown constraints before the pure deterministic solver runs.
+
+Path states have strict meanings:
+
+- `FEASIBLE`: every applicable modeled requirement is explicitly satisfied.
+- `CONDITIONAL`: no requirement conflicts, but at least one required fact or availability value is unknown.
+- `BLOCKED`: a known case fact conflicts with an explicit requirement.
+
+Ranking favors feasible over conditional over blocked paths, then goal alignment, lower disruption, fewer unknowns, and fewer conflicts. Catalog order is the deterministic final tie-break. `POST /api/cases/:id/paths` derives results only from the persisted case, and verified resources attach beneath matching intervention steps. A resource or directory never proves service availability, eligibility, or path feasibility.
+
+The solver exposes structured blockers for future use, but it does not calculate counterfactual changes or a “Smallest Unlock.” That work is intentionally reserved for Pass 7.

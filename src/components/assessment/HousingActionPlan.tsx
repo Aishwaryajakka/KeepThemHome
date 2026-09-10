@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import type { HousingSituation, HousingTiming, HousingGoal } from '@/types/assessment';
 import { matchHousingResources } from '@/data/resources';
-import { caseApi, type CasePlan } from '@/lib/case-api';
+import { caseApi, type CasePlan, type RetentionPathResult } from '@/lib/case-api';
 
 interface HousingActionPlanProps {
   backendCaseId?: string;
@@ -34,6 +34,7 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   const displayName = petName.trim() || 'Luna';
   const [showOtherOptions, setShowOtherOptions] = useState(false);
   const [backendPlan, setBackendPlan] = useState<CasePlan | null>(null);
+  const [retentionPaths, setRetentionPaths] = useState<RetentionPathResult[] | null>(null);
   const fallbackResources = matchHousingResources(situation, timing, goal);
   const matchedResources = backendPlan
     ? backendPlan.interventions.flatMap(({ resources }) => resources).slice(0, 3)
@@ -51,6 +52,22 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
       })
       .catch(() => {
         if (active) setBackendPlan(null);
+      });
+    return () => { active = false; };
+  }, [backendCaseId]);
+
+  useEffect(() => {
+    if (!backendCaseId) {
+      setRetentionPaths(null);
+      return;
+    }
+    let active = true;
+    void caseApi.getRetentionPaths(backendCaseId)
+      .then(({ paths }) => {
+        if (active && paths.length > 0) setRetentionPaths(paths);
+      })
+      .catch(() => {
+        if (active) setRetentionPaths(null);
       });
     return () => { active = false; };
   }, [backendCaseId]);
@@ -107,7 +124,7 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
         </div>
 
         <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#2E5440] font-normal leading-tight tracking-tight mb-3 sm:mb-4 text-balance">
-          Your Keep {displayName} Home Plan
+          {retentionPaths ? `Possible paths to keeping ${displayName} home` : `Your Keep ${displayName} Home Plan`}
         </h1>
 
         <p className="font-sans text-base sm:text-lg text-[#2D2D2D]/85 leading-relaxed mb-4 text-pretty">
@@ -123,7 +140,56 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
 
       {/* Prioritized Action Plan Cards */}
       <div className="space-y-6 sm:space-y-8 mb-14 sm:mb-16">
-        {backendPlan ? backendPlan.interventions.map((intervention, index) => (
+        {retentionPaths ? retentionPaths.map((path, index) => (
+          <article
+            key={path.key}
+            className={`p-6 sm:p-8 rounded-2xl bg-white shadow-sm ${index === 0 ? 'border-2 border-[#2E5440]' : 'border border-[#A7B89F]/45'}`}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <span className="text-xs font-semibold text-[#2D2D2D]/50 tracking-widest uppercase font-sans">
+                Path {String(index + 1).padStart(2, '0')}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold tracking-wider ${path.status === 'FEASIBLE' ? 'bg-[#DDEBDD] text-[#245038]' : path.status === 'BLOCKED' ? 'bg-[#F3DEDA] text-[#7A3028]' : 'bg-[#F3E9CF] text-[#6B5420]'}`}>
+                {path.status}
+              </span>
+            </div>
+            <h2 className="font-serif text-2xl sm:text-3xl text-[#2E5440] font-medium leading-snug mb-2">
+              {path.title}
+            </h2>
+            <p className="font-sans text-sm sm:text-base text-[#2D2D2D]/80 leading-relaxed mb-5">
+              {path.objective}
+            </p>
+            <ol className="space-y-4 mb-5">
+              {path.steps.map((step, stepIndex) => (
+                <li key={step.key} className="pl-4 border-l-2 border-[#A7B89F]/50">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/70 mb-1">Step {stepIndex + 1}</p>
+                  <h3 className="font-serif text-lg text-[#2E5440]">{step.title}</h3>
+                  <p className="text-sm text-[#2D2D2D]/75 mt-1">{step.description}</p>
+                  {step.resources.map((resource) => (
+                    <a
+                      key={resource.id}
+                      href={resource.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-[#2E5440] underline decoration-[#A7B89F] underline-offset-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E5440]"
+                    >
+                      {resource.name}<ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  ))}
+                </li>
+              ))}
+            </ol>
+            <details className="p-4 rounded-xl bg-[#FAF7F2] border border-[#A7B89F]/30 text-xs sm:text-sm">
+              <summary className="font-semibold text-[#2E5440] cursor-pointer">Why this status?</summary>
+              <p className="text-[#2D2D2D]/75 leading-relaxed mt-2">{path.statusReason}</p>
+              {path.blockers.length > 0 && (
+                <ul className="mt-2 space-y-1 list-disc pl-5">
+                  {path.blockers.map((blocker) => <li key={`${path.key}-${blocker.field}`}>{blocker.label}</li>)}
+                </ul>
+              )}
+            </details>
+          </article>
+        )) : backendPlan ? backendPlan.interventions.map((intervention, index) => (
           <article
             key={intervention.key}
             className={`p-6 sm:p-8 rounded-2xl bg-white shadow-sm transition-all ${index === 0 ? 'border-2 border-[#2E5440]' : 'border border-[#A7B89F]/45'}`}
