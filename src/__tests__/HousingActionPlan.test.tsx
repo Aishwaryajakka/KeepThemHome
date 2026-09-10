@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HousingActionPlan from '@/components/assessment/HousingActionPlan';
 import { caseApi } from '@/lib/case-api';
@@ -51,6 +52,7 @@ describe('HousingActionPlan backend fallback', () => {
         primaryBarrier: 'housing', situation: props.situation, urgency: props.timing,
         goal: props.goal, behaviorContributor: true, costConstraint: 'Cannot afford trainer',
       },
+      appliedChanges: [],
       paths: [{
         key: 'remain_in_current_housing',
         title: 'Stay in current housing with your pet',
@@ -75,5 +77,70 @@ describe('HousingActionPlan backend fallback', () => {
     expect(screen.getByText('CONDITIONAL')).toBeInTheDocument();
     expect(screen.getByText('Clarify the complaint')).toBeInTheDocument();
     expect(screen.getByText('Resolution has not been confirmed.')).toBeInTheDocument();
+  });
+
+  it('shows unlock loading, applies hypothetical changes, and resets to actual facts', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(caseApi, 'getPlan').mockRejectedValue(new Error('plan unavailable'));
+    const path = (status: 'BLOCKED' | 'FEASIBLE') => ({
+      key: 'move_with_pet', title: 'Move with your pet', objective: 'Relocate together.', status,
+      statusReason: status === 'BLOCKED' ? 'A known fact conflicts.' : 'All requirements are met.',
+      blockers: status === 'BLOCKED' ? [{
+        code: 'KNOWN_CONSTRAINT_CONFLICT', type: 'PRECONDITION' as const, field: 'goalSupportsMove',
+        currentValue: false as const, requiredCondition: 'Goal allows moving',
+        status: 'KNOWN_CONFLICT' as const, label: 'The current goal does not allow relocation.',
+      }] : [],
+      reasonCodes: ['HOUSING_BARRIER'], rankScore: 100, friction: 3,
+      steps: [{ key: 'move', title: 'Find housing', description: 'Investigate options.', resources: [] }],
+    });
+    const response = (status: 'BLOCKED' | 'FEASIBLE', appliedChanges: never[] = []) => ({
+      caseId: props.backendCaseId,
+      facts: {
+        primaryBarrier: 'housing', situation: props.situation, urgency: props.timing,
+        goal: props.goal, behaviorContributor: true as const, costConstraint: 'Cannot afford trainer',
+      },
+      appliedChanges,
+      paths: [path(status)],
+    });
+    vi.spyOn(caseApi, 'getRetentionPaths')
+      .mockResolvedValueOnce(response('BLOCKED'))
+      .mockResolvedValueOnce(response('FEASIBLE'))
+      .mockResolvedValueOnce(response('BLOCKED'));
+    let resolveUnlock!: (value: Awaited<ReturnType<typeof caseApi.getSmallestUnlock>>) => void;
+    vi.spyOn(caseApi, 'getSmallestUnlock').mockReturnValue(new Promise((resolve) => { resolveUnlock = resolve; }));
+
+    render(<HousingActionPlan {...props} />);
+    await user.click(await screen.findByRole('button', { name: 'What would unlock this?' }));
+    expect(screen.getByRole('button', { name: 'Checking supported changes…' })).toBeDisabled();
+    resolveUnlock({
+      targetPathKey: 'move_with_pet', unlockNeeded: true, currentStatus: 'BLOCKED',
+      currentBlockers: path('BLOCKED').blockers,
+      smallestUnlock: {
+        changes: [{
+          code: 'ALLOW_STAY_OR_MOVE', field: 'goal', from: 'Stay where I am', to: 'Either could work',
+          label: 'Become open to relocating.', burden: 3, source: 'supported_catalog',
+        }, {
+          code: 'CONFIRM_PET_FRIENDLY_HOUSING', field: 'petFriendlyHousingAvailable', from: 'unknown', to: true,
+          label: 'Assume suitable housing is available.', burden: 4, source: 'supported_catalog',
+        }, {
+          code: 'CONFIRM_MOVE_REQUIREMENTS', field: 'moveRequirementsMet', from: 'unknown', to: true,
+          label: 'Assume move requirements can be met.', burden: 4, source: 'supported_catalog',
+        }],
+        changeCount: 3, totalBurden: 11, resultingStatus: 'FEASIBLE', resultingPathEvaluation: path('FEASIBLE'),
+      },
+      alternatives: [], appliedChanges: [], appliedOverrides: {}, currentPathEvaluation: path('BLOCKED'),
+    });
+    expect(await screen.findByText('Smallest Unlock')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Apply Changes' }));
+    expect(await screen.findByText('Viewing a hypothetical scenario. Your current case has not changed.')).toBeInTheDocument();
+    expect(screen.getByText('FEASIBLE')).toBeInTheDocument();
+    expect(caseApi.getRetentionPaths).toHaveBeenLastCalledWith(props.backendCaseId, [
+      'ALLOW_STAY_OR_MOVE', 'CONFIRM_PET_FRIENDLY_HOUSING', 'CONFIRM_MOVE_REQUIREMENTS',
+    ]);
+
+    await user.click(screen.getByRole('button', { name: 'Reset to current situation' }));
+    await waitFor(() => expect(caseApi.getRetentionPaths).toHaveBeenLastCalledWith(props.backendCaseId, []));
+    expect(await screen.findByText('BLOCKED')).toBeInTheDocument();
+    expect(screen.queryByText('Viewing a hypothetical scenario. Your current case has not changed.')).not.toBeInTheDocument();
   });
 });

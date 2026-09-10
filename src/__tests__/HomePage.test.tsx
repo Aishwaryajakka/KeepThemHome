@@ -63,6 +63,37 @@ beforeEach(() => {
 });
 
 describe('Keep Them Home demo flows', () => {
+  it('falls back to the unchanged guided intake when automatic intake fails', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 503 })));
+    const user = await startAssessment();
+    await user.type(screen.getByRole('textbox', { name: 'Tell us what’s happening' }), 'My landlord says Luna has to go.');
+    await user.click(screen.getByRole('button', { name: 'Find possible paths' }));
+    expect(await screen.findByText(/couldn’t interpret that automatically/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Pet name/)).toBeEnabled();
+  });
+
+  it('reviews and merges natural-language facts into the existing guided flow', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      extraction: {
+        petName: 'Luna', petType: null, primaryBarrier: 'housing', contributingBarriers: ['behavior', 'cost'],
+        housingSituation: 'My landlord or property says pets aren’t allowed', behaviorConcern: 'Barking or excessive noise',
+        behaviorSeriousness: null, behaviorAlreadyTried: null, behaviorHelpBarrier: 'Cost',
+        costConstraint: 'Cannot afford a trainer', urgency: 'This week', goal: null,
+      },
+      followUps: [
+        { field: 'pet', screen: 'pet-info', question: 'Who are we helping?' },
+        { field: 'goal', screen: 'housing-3', question: 'Would you prefer to stay where you are or move?' },
+      ],
+    }), { status: 200 })));
+    const user = await startAssessment();
+    await user.click(screen.getByRole('button', { name: 'Dog' }));
+    await user.type(screen.getByRole('textbox', { name: 'Tell us what’s happening' }), 'My landlord is threatening eviction because Luna barks while I’m at work. I have a week and can’t afford a trainer.');
+    await user.click(screen.getByRole('button', { name: 'Find possible paths' }));
+    expect(await screen.findByText('Housing issue')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Continue with these details' }));
+    expect(screen.getByRole('heading', { name: /stay where you are or move/ })).toBeInTheDocument();
+  });
+
   it('accepts Luna and Dog, then reaches the Housing pathway', async () => {
     const user = await enterLuna();
 
@@ -106,6 +137,19 @@ describe('Keep Them Home demo flows', () => {
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('button', { name: /immediate safety concern/ }));
 
+    expect(screen.getByRole('dialog')).toHaveTextContent('Safety comes first.');
+  });
+
+  it('shows the same safety notice for an already-structured immediate safety fact', () => {
+    sessionStorage.setItem(ASSESSMENT_SESSION_KEY, JSON.stringify({
+      version: ASSESSMENT_SESSION_VERSION,
+      caseState: {
+        ...initialAssessmentCase,
+        petName: 'Luna', petType: 'dog', rootCause: 'behavior', currentScreen: 'behavior-2',
+        behavior: { ...initialAssessmentCase.behavior, seriousness: 'There’s an immediate safety concern' },
+      },
+    }));
+    render(<HomePage />);
     expect(screen.getByRole('dialog')).toHaveTextContent('Safety comes first.');
   });
 

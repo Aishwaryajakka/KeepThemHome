@@ -10,7 +10,13 @@ import {
 } from '@/components/ui/dialog';
 import type { HousingSituation, HousingTiming, HousingGoal } from '@/types/assessment';
 import { matchHousingResources } from '@/data/resources';
-import { caseApi, type CasePlan, type RetentionPathResult } from '@/lib/case-api';
+import {
+  caseApi,
+  type CasePlan,
+  type RetentionPathResult,
+  type SupportedChangeCode,
+  type UnlockResponse,
+} from '@/lib/case-api';
 
 interface HousingActionPlanProps {
   backendCaseId?: string;
@@ -35,6 +41,10 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   const [showOtherOptions, setShowOtherOptions] = useState(false);
   const [backendPlan, setBackendPlan] = useState<CasePlan | null>(null);
   const [retentionPaths, setRetentionPaths] = useState<RetentionPathResult[] | null>(null);
+  const [appliedChanges, setAppliedChanges] = useState<SupportedChangeCode[]>([]);
+  const [unlockingPath, setUnlockingPath] = useState<string | null>(null);
+  const [unlockResults, setUnlockResults] = useState<Record<string, UnlockResponse>>({});
+  const [unlockErrors, setUnlockErrors] = useState<Record<string, boolean>>({});
   const fallbackResources = matchHousingResources(situation, timing, goal);
   const matchedResources = backendPlan
     ? backendPlan.interventions.flatMap(({ resources }) => resources).slice(0, 3)
@@ -62,7 +72,7 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
       return;
     }
     let active = true;
-    void caseApi.getRetentionPaths(backendCaseId)
+    void caseApi.getRetentionPaths(backendCaseId, [])
       .then(({ paths }) => {
         if (active && paths.length > 0) setRetentionPaths(paths);
       })
@@ -71,6 +81,50 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
       });
     return () => { active = false; };
   }, [backendCaseId]);
+
+  const exploreUnlock = async (pathKey: string) => {
+    if (!backendCaseId) return;
+    setUnlockingPath(pathKey);
+    setUnlockErrors((current) => ({ ...current, [pathKey]: false }));
+    try {
+      const result = await caseApi.getSmallestUnlock(backendCaseId, pathKey, appliedChanges);
+      setUnlockResults((current) => ({ ...current, [pathKey]: result }));
+    } catch {
+      setUnlockErrors((current) => ({ ...current, [pathKey]: true }));
+    } finally {
+      setUnlockingPath(null);
+    }
+  };
+
+  const applyUnlock = async (result: UnlockResponse) => {
+    if (!backendCaseId || !result.smallestUnlock) return;
+    const nextChanges = Array.from(new Set([
+      ...appliedChanges,
+      ...result.smallestUnlock.changes.map(({ code }) => code),
+    ]));
+    try {
+      const response = await caseApi.getRetentionPaths(backendCaseId, nextChanges);
+      setAppliedChanges(nextChanges);
+      setRetentionPaths(response.paths);
+      setUnlockResults({});
+      setUnlockErrors({});
+    } catch {
+      // Keep the current exploration visible if the recomputation request fails.
+    }
+  };
+
+  const resetHypotheticals = async () => {
+    if (!backendCaseId) return;
+    try {
+      const response = await caseApi.getRetentionPaths(backendCaseId, []);
+      setAppliedChanges([]);
+      setRetentionPaths(response.paths);
+      setUnlockResults({});
+      setUnlockErrors({});
+    } catch {
+      // The displayed paths remain usable; actual persisted facts are untouched.
+    }
+  };
 
   const explainReasons = (reasons: string[]) => {
     if (reasons.includes('PET_DEPOSIT_OR_FEE')) return 'You identified a pet deposit or fee as the immediate housing barrier.';
@@ -131,6 +185,15 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
           Based on what you told us, here are three things worth trying before making a permanent decision.
         </p>
 
+        {appliedChanges.length > 0 && (
+          <div className="mb-4 p-4 rounded-xl bg-[#F3E9CF]/55 border border-[#D9C58F] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <p className="text-sm text-[#5E4B20]">Viewing a hypothetical scenario. Your current case has not changed.</p>
+            <button type="button" onClick={() => void resetHypotheticals()} className="text-sm font-semibold text-[#2E5440] underline underline-offset-4 self-start sm:self-auto">
+              Reset to current situation
+            </button>
+          </div>
+        )}
+
         {/* Personalized Situation Summary */}
         <div className="p-4 sm:p-5 rounded-xl bg-white/70 border border-[#A7B89F]/35 text-xs sm:text-sm text-[#2D2D2D]/80 leading-relaxed font-sans">
           <span className="font-semibold text-[#2E5440] mr-1.5">Your situation:</span>
@@ -188,6 +251,49 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
                 </ul>
               )}
             </details>
+            {path.status !== 'FEASIBLE' && (
+              <div className="mt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={unlockingPath === path.key}
+                  onClick={() => void exploreUnlock(path.key)}
+                  className="border-[#2E5440] text-[#2E5440]"
+                >
+                  {unlockingPath === path.key ? 'Checking supported changes…' : 'What would unlock this?'}
+                </Button>
+                {unlockResults[path.key] && (
+                  <div className="mt-4 p-4 rounded-xl bg-[#F4F0E7] border border-[#D7CCB8]">
+                    <p className="text-xs font-bold tracking-wider uppercase text-[#2E5440] mb-2">Smallest Unlock</p>
+                    {unlockResults[path.key].smallestUnlock ? (
+                      <>
+                        <ul className="space-y-2 text-sm text-[#2D2D2D]/80">
+                          {unlockResults[path.key].smallestUnlock?.changes.map((change) => (
+                            <li key={change.code}>
+                              <span className="block">{change.label}</span>
+                              <span className="block text-xs text-[#2D2D2D]/60 mt-0.5">
+                                {String(change.from)} → {String(change.to)}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-3 text-xs text-[#2D2D2D]/65">
+                          Applying these changes would make this modeled path FEASIBLE. This does not confirm that the conditions are true.
+                        </p>
+                        <Button type="button" onClick={() => void applyUnlock(unlockResults[path.key]!)} className="mt-4 bg-[#2E5440] text-[#FAF7F2]">
+                          Apply Changes
+                        </Button>
+                      </>
+                    ) : (
+                      <p className="text-sm text-[#2D2D2D]/75">No supported unlock found with the constraints currently modeled.</p>
+                    )}
+                  </div>
+                )}
+                {unlockErrors[path.key] && (
+                  <p className="mt-3 text-sm text-[#2D2D2D]/70">We couldn’t check hypothetical changes right now. Your current plan is still available.</p>
+                )}
+              </div>
+            )}
           </article>
         )) : backendPlan ? backendPlan.interventions.map((intervention, index) => (
           <article

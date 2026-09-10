@@ -24,7 +24,9 @@ export const BehaviorStep2: React.FC<BehaviorStep2Props> = ({
   onContinue,
   onBack,
 }) => {
-  const [showSafetyNotice, setShowSafetyNotice] = useState(false);
+  const [showSafetyNotice, setShowSafetyNotice] = useState(
+    selectedSeriousness === 'There’s an immediate safety concern',
+  );
 
   const options: BehaviorSeriousness[] = [
     'Frustrating, but manageable',

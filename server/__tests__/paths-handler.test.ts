@@ -13,7 +13,7 @@ const responseDouble = () => {
   return { response, json };
 };
 
-const request = (method: string, id = caseId) => ({ method, query: { id } }) as unknown as VercelRequest;
+const request = (method: string, id = caseId) => ({ method, query: { id }, body: {} }) as unknown as VercelRequest;
 
 describe('retention paths API handler', () => {
   it('rejects invalid UUIDs and unsupported methods', async () => {

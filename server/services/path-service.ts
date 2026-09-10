@@ -9,13 +9,24 @@ import {
 } from '../db/schema';
 import { normalizeHousingCase } from '../retention-paths/normalize';
 import { solveRetentionPaths } from '../retention-paths/solver';
+import { applySupportedChanges } from '../counterfactual/engine';
+import { materializeSupportedChanges } from '../counterfactual/catalog';
+import type { SupportedChangeCode } from '../counterfactual/domain';
 
-export const generateRetentionPaths = async (caseId: string) => {
+export const loadNormalizedHousingCase = async (caseId: string) => {
   const db = getDatabase();
   const [caseRecord] = await db.select().from(cases).where(eq(cases.id, caseId)).limit(1);
   if (!caseRecord) return undefined;
   const factors = await db.select().from(caseFactors).where(eq(caseFactors.caseId, caseId));
-  const facts = normalizeHousingCase(caseRecord, factors);
+  return normalizeHousingCase(caseRecord, factors);
+};
+
+export const generateRetentionPaths = async (caseId: string, appliedCodes: SupportedChangeCode[] = []) => {
+  const db = getDatabase();
+  const actualFacts = await loadNormalizedHousingCase(caseId);
+  if (!actualFacts) return undefined;
+  const appliedChanges = materializeSupportedChanges(actualFacts, appliedCodes);
+  const facts = applySupportedChanges(actualFacts, appliedChanges);
   if (facts.primaryBarrier !== 'housing') return { caseId, paths: [] };
 
   const paths = solveRetentionPaths(facts);
@@ -43,6 +54,7 @@ export const generateRetentionPaths = async (caseId: string) => {
       behaviorContributor: facts.constraints.behaviorContributor,
       costConstraint: facts.costConstraint,
     },
+    appliedChanges,
     paths: paths.map((path) => ({
       ...path,
       steps: path.steps.map((step) => ({

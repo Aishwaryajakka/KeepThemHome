@@ -51,6 +51,16 @@ pnpm db:verify
 
 The eight verified resource records remain in `src/data/resources.ts` as the offline/demo fallback and seed source. Their factual content, URLs, verification date, and local matching behavior are unchanged.
 
+## Counterfactual Explorer and Smallest Unlock
+
+For a conditional or blocked retention path, the Counterfactual Explorer can test a bounded catalog of supported hypothetical changes. It never accepts arbitrary fields or values from the browser. Supported dimensions currently cover goal flexibility and the modeled Housing requirements for complaint resolution, behavior mitigation, temporary care, underlying-issue resolution, pet-friendly housing, and move requirements.
+
+The search reuses the Retention Path Solver as its only feasibility decision-maker. It checks one-change combinations first, then two, then three, and stops at the first cardinality that makes the selected path feasible. Equal-cardinality results are ordered by total burden and then stable change-code order. Resource listings can support investigation but never satisfy an availability requirement.
+
+Applying an unlock changes only in-memory exploration state and requests a recomputation with trusted change codes. It does not patch the case or its factors. “Reset to current situation” discards those codes and recomputes from persisted facts. Counterfactual search is limited to three changes; unsupported paths return no modeled unlock instead of invented advice.
+
+Generated explanations remain outside this implementation. Natural-language intake is documented below.
+
 ## Retention Path Solver
 
 The server-side Retention Path Solver answers which distinct Housing strategies could keep a pet with its owner. Source-controlled path definitions declare ordered intervention steps and explicit preconditions. Persisted case fields and structured factors are normalized into known-true, known-false, or unknown constraints before the pure deterministic solver runs.
@@ -63,4 +73,12 @@ Path states have strict meanings:
 
 Ranking favors feasible over conditional over blocked paths, then goal alignment, lower disruption, fewer unknowns, and fewer conflicts. Catalog order is the deterministic final tie-break. `POST /api/cases/:id/paths` derives results only from the persisted case, and verified resources attach beneath matching intervention steps. A resource or directory never proves service availability, eligibility, or path feasibility.
 
-The solver exposes structured blockers for future use, but it does not calculate counterfactual changes or a “Smallest Unlock.” That work is intentionally reserved for Pass 7.
+The solver exposes structured blockers to the separate deterministic Counterfactual Explorer; neither decision system is delegated to a language model.
+
+## Natural-language intake
+
+The optional story field sends only the submitted text to `POST /api/intake/extract`. The server reads `GROQ_API_KEY` and `GROQ_MODEL` from its environment, requests strict JSON-schema Structured Outputs, and then independently validates the result with Zod. Neither variable may use a `VITE_` prefix or be exposed to browser code.
+
+Groq is used only as a structured parser. It may identify explicitly stated supported case facts, but it does not determine feasibility, rank paths, choose interventions, diagnose an animal, generate safety guidance, or recommend resources. Unstated facts remain `null`; application code selects a small number of existing guided follow-up questions, and confirmed facts merge into the existing assessment state and case-factor synchronization.
+
+If configuration, the provider, parsing, or validation fails, the guided intake remains available and no partial extraction is committed. Raw owner stories and model responses are not persisted. Generated or grounded explanations are outside Pass 8 and have not been implemented.

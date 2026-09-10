@@ -20,6 +20,8 @@ export interface AssessmentCaseState {
   petName: string;
   petType: PetType;
   rootCause: RootCauseType;
+  contributingBarriers?: Exclude<RootCauseType, ''>[];
+  costConstraint?: string;
   housing: {
     situation: HousingSituation;
     urgency: HousingTiming;
@@ -39,6 +41,8 @@ export const initialAssessmentCase: AssessmentCaseState = {
   petName: '',
   petType: '',
   rootCause: '',
+  contributingBarriers: [],
+  costConstraint: '',
   housing: { situation: '', urgency: '', goal: '' },
   behavior: { concern: '', seriousness: '', alreadyTried: '', helpBarrier: '' },
   outcome: '',
@@ -120,6 +124,12 @@ export const isAssessmentCaseState = (value: unknown): value is AssessmentCaseSt
     && typeof value.petName === 'string'
     && includes(allowed.petType, value.petType)
     && includes(allowed.rootCause, value.rootCause)
+    && (value.contributingBarriers === undefined
+      || (Array.isArray(value.contributingBarriers)
+        && value.contributingBarriers.every((barrier) => barrier !== '' && includes(allowed.rootCause, barrier))
+        && new Set(value.contributingBarriers).size === value.contributingBarriers.length))
+    && (value.costConstraint === undefined
+      || (typeof value.costConstraint === 'string' && value.costConstraint.length <= 200))
     && includes(allowed.housingSituation, value.housing.situation)
     && includes(allowed.housingUrgency, value.housing.urgency)
     && includes(allowed.housingGoal, value.housing.goal)

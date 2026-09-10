@@ -42,6 +42,8 @@ import {
   type AssessmentCaseState,
 } from '@/lib/assessment-session';
 import { useCaseSync } from '@/hooks/use-case-sync';
+import { mergeIntakeResult } from '@/lib/intake-merge';
+import type { IntakeResult } from '@/lib/intake-api';
 
 type AssessmentAction =
   | { type: 'update'; patch: Partial<AssessmentCaseState> }
@@ -125,6 +127,12 @@ export const HomePage: React.FC = () => {
 
   const handleContinueToRootCause = () => {
     setCurrentScreen('root-cause');
+  };
+
+  const handleIntakeConfirm = (result: IntakeResult) => {
+    const nextState = mergeIntakeResult(caseState, result);
+    window.history.pushState({ [HISTORY_STATE_KEY]: nextState.currentScreen }, '', window.location.href);
+    dispatch({ type: 'update', patch: nextState });
   };
 
   const handleBackToPetInfo = () => {
@@ -272,6 +280,7 @@ export const HomePage: React.FC = () => {
             onTypeSelect={(value) => updateCase('petType', value)}
             onContinue={handleContinueToRootCause}
             onBack={handleBackToHome}
+            onIntakeConfirm={handleIntakeConfirm}
           />
         )}
 

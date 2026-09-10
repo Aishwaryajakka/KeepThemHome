@@ -8,7 +8,7 @@ const outcomeStatus = (outcome: AssessmentCaseState['outcome']): ApiOutcomeStatu
   if (outcome === 'rehomingHelp') return 'rehoming_help';
 };
 
-const structuredFactors = (caseState: AssessmentCaseState): FactorInput[] => {
+export const structuredFactors = (caseState: AssessmentCaseState): FactorInput[] => {
   const factors: FactorInput[] = [];
   if (caseState.rootCause) factors.push({
     factorType: 'primary_barrier', factorValue: caseState.rootCause, role: 'primary', source: 'structured',
@@ -24,20 +24,27 @@ const structuredFactors = (caseState: AssessmentCaseState): FactorInput[] => {
       factorType: 'goal', factorValue: caseState.housing.goal, role: 'contributing', source: 'structured',
     });
   }
-  if (caseState.rootCause === 'behavior') {
-    if (caseState.behavior.concern) factors.push({
+  if (caseState.behavior.concern) factors.push({
       factorType: 'behavior_concern', factorValue: caseState.behavior.concern, role: 'contributing', source: 'structured',
     });
-    if (caseState.behavior.seriousness) factors.push({
+  if (caseState.behavior.seriousness) factors.push({
       factorType: 'behavior_seriousness', factorValue: caseState.behavior.seriousness, role: 'constraint', source: 'structured',
     });
-    if (caseState.behavior.alreadyTried) factors.push({
+  if (caseState.behavior.alreadyTried) factors.push({
       factorType: 'behavior_already_tried', factorValue: caseState.behavior.alreadyTried, role: 'contributing', source: 'structured',
     });
-    if (caseState.behavior.helpBarrier) factors.push({
+  if (caseState.behavior.helpBarrier) factors.push({
       factorType: 'behavior_help_barrier', factorValue: caseState.behavior.helpBarrier, role: 'constraint', source: 'structured',
     });
-  }
+  if (caseState.contributingBarriers?.includes('behavior') && !caseState.behavior.concern) factors.push({
+    factorType: 'behavior_contributor', factorValue: 'behavior', role: 'contributing', source: 'structured',
+  });
+  if (caseState.costConstraint) factors.push({
+    factorType: 'cost_constraint', factorValue: caseState.costConstraint, role: 'constraint', source: 'structured',
+  });
+  if (caseState.contributingBarriers?.includes('cost') && !caseState.costConstraint) factors.push({
+    factorType: 'cost_constraint', factorValue: 'Explicitly identified', role: 'constraint', source: 'structured',
+  });
   return factors;
 };
 

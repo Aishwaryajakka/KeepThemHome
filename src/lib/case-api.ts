@@ -106,7 +106,47 @@ export interface RetentionPathsResponse {
     behaviorContributor: true | false | 'unknown';
     costConstraint: string | null;
   };
+  appliedChanges: SupportedChange[];
   paths: RetentionPathResult[];
+}
+
+export type SupportedChangeCode =
+  | 'ALLOW_STAY_OR_MOVE'
+  | 'CONFIRM_HOUSING_RESOLUTION'
+  | 'CONFIRM_BEHAVIOR_MITIGATION'
+  | 'CONFIRM_TEMPORARY_CARE'
+  | 'CONFIRM_UNDERLYING_ISSUE_RESOLUTION'
+  | 'CONFIRM_PET_FRIENDLY_HOUSING'
+  | 'CONFIRM_MOVE_REQUIREMENTS';
+
+export interface SupportedChange {
+  code: SupportedChangeCode;
+  field: string;
+  from: string | boolean;
+  to: string | boolean;
+  label: string;
+  burden: number;
+  source: 'supported_catalog';
+}
+
+export interface UnlockCandidate {
+  changes: SupportedChange[];
+  changeCount: number;
+  totalBurden: number;
+  resultingStatus: 'FEASIBLE';
+  resultingPathEvaluation: RetentionPathResult;
+}
+
+export interface UnlockResponse {
+  targetPathKey: string;
+  unlockNeeded: boolean;
+  currentStatus: RetentionPathStatus;
+  currentBlockers: RetentionPathBlocker[];
+  smallestUnlock: UnlockCandidate | null;
+  alternatives: UnlockCandidate[];
+  appliedChanges: SupportedChange[];
+  appliedOverrides: Record<string, string | boolean>;
+  currentPathEvaluation: RetentionPathResult;
 }
 
 const requestJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
@@ -145,6 +185,13 @@ export const caseApi = {
   getPlan: async (id: string) =>
     requestJson<CasePlan>(`/api/cases/${id}/plan`, { method: 'POST' }),
 
-  getRetentionPaths: async (id: string) =>
-    requestJson<RetentionPathsResponse>(`/api/cases/${id}/paths`, { method: 'POST' }),
+  getRetentionPaths: async (id: string, appliedChanges: SupportedChangeCode[] = []) =>
+    requestJson<RetentionPathsResponse>(`/api/cases/${id}/paths`, {
+      method: 'POST', body: JSON.stringify({ appliedChanges }),
+    }),
+
+  getSmallestUnlock: async (id: string, pathKey: string, appliedChanges: SupportedChangeCode[] = []) =>
+    requestJson<UnlockResponse>(`/api/cases/${id}/paths/${pathKey}/unlock`, {
+      method: 'POST', body: JSON.stringify({ appliedChanges }),
+    }),
 };
