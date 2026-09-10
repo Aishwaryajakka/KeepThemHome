@@ -1,0 +1,53 @@
+import { z } from 'zod';
+
+export const uuidSchema = z.string().uuid();
+
+export const petTypeSchema = z.enum(['dog', 'cat', 'other']);
+export const primaryBarrierSchema = z.enum(['housing', 'behavior', 'cost', 'medical', 'circumstances']);
+export const urgencySchema = z.enum(['Today or within 48 hours', 'This week', 'Within a month', 'I’m planning ahead']);
+export const goalSchema = z.enum(['Stay where I am', 'Move', 'Either could work']);
+export const caseStatusSchema = z.enum(['active', 'keeping', 'still_trying', 'rehoming_help', 'closed']);
+export const factorRoleSchema = z.enum(['primary', 'contributing', 'constraint']);
+export const factorSourceSchema = z.enum(['structured', 'ai']);
+export const outcomeStatusSchema = z.enum(['keeping', 'still_trying', 'rehoming_help']);
+
+export const createCaseSchema = z.object({
+  petName: z.string().trim().min(1).max(100),
+  petType: petTypeSchema,
+  primaryBarrier: primaryBarrierSchema.nullable().optional(),
+  urgency: urgencySchema.nullable().optional(),
+  goal: goalSchema.nullable().optional(),
+  currentStatus: caseStatusSchema.optional(),
+}).strict();
+
+export const updateCaseSchema = z.object({
+  petName: z.string().trim().min(1).max(100).optional(),
+  petType: petTypeSchema.optional(),
+  primaryBarrier: primaryBarrierSchema.nullable().optional(),
+  urgency: urgencySchema.nullable().optional(),
+  goal: goalSchema.nullable().optional(),
+  currentStatus: caseStatusSchema.optional(),
+}).strict().refine((value) => Object.keys(value).length > 0, 'At least one field is required');
+
+export const factorSchema = z.object({
+  factorType: z.string().trim().min(1).max(100),
+  factorValue: z.string().trim().max(500).nullable().optional(),
+  role: factorRoleSchema,
+  source: factorSourceSchema,
+  confidence: z.number().min(0).max(1).nullable().optional(),
+}).strict();
+
+export const createFactorsSchema = z.object({
+  factors: z.array(factorSchema).min(1).max(20),
+}).strict();
+
+export const createOutcomeSchema = z.object({
+  status: outcomeStatusSchema,
+  unresolvedBarrier: z.string().trim().max(500).nullable().optional(),
+  notes: z.string().trim().max(2000).nullable().optional(),
+}).strict();
+
+export type CreateCaseInput = z.infer<typeof createCaseSchema>;
+export type UpdateCaseInput = z.infer<typeof updateCaseSchema>;
+export type CreateFactorsInput = z.infer<typeof createFactorsSchema>;
+export type CreateOutcomeInput = z.infer<typeof createOutcomeSchema>;

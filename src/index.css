@@ -1,0 +1,94 @@
+/* stylelint-disable */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 
+  Keep Them Home Brand Design System
+  Forest: #2E5440 (hsl(148.4, 29.3%, 25.5%))
+  Sage: #A7B89F (hsl(100, 15.2%, 67.3%))
+  Warm Sand: #E3C9B2 (hsl(27.3, 47.4%, 79.4%))
+  Cream: #FAF7F2 (hsl(37.5, 37.5%, 96.5%))
+  Charcoal: #2D2D2D (hsl(0, 0%, 17.6%))
+*/
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+    --background: 37.5 37.5% 96.5%; /* #FAF7F2 Cream */
+    --foreground: 0 0% 17.6%; /* #2D2D2D Charcoal */
+
+    --card: 37.5 30% 98%;
+    --card-foreground: 0 0% 17.6%;
+
+    --popover: 37.5 37.5% 96.5%;
+    --popover-foreground: 0 0% 17.6%;
+
+    --primary: 148.4 29.3% 25.5%; /* #2E5440 Forest */
+    --primary-foreground: 37.5 37.5% 96.5%; /* #FAF7F2 Cream */
+
+    --secondary: 100 15.2% 67.3%; /* #A7B89F Sage */
+    --secondary-foreground: 148.4 29.3% 25.5%;
+
+    --muted: 40 18% 91%;
+    --muted-foreground: 0 0% 42%;
+
+    --accent: 27.3 47.4% 79.4%; /* #E3C9B2 Warm Sand */
+    --accent-foreground: 0 0% 17.6%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 38 18% 87%;
+    --input: 38 18% 87%;
+    --ring: 148.4 29.3% 25.5%;
+
+    /* Named Brand Tokens */
+    --brand-forest: 148.4 29.3% 25.5%;
+    --brand-forest-hover: 148.4 32% 21%;
+    --brand-sage: 100 15.2% 67.3%;
+    --brand-warm-sand: 27.3 47.4% 79.4%;
+    --brand-cream: 37.5 37.5% 96.5%;
+    --brand-charcoal: 0 0% 17.6%;
+  }
+
+  .dark {
+    --background: 148 20% 8%;
+    --foreground: 37.5 30% 95%;
+    --card: 148 20% 11%;
+    --card-foreground: 37.5 30% 95%;
+    --popover: 148 20% 11%;
+    --popover-foreground: 37.5 30% 95%;
+    --primary: 100 20% 75%;
+    --primary-foreground: 148 30% 15%;
+    --secondary: 100 15% 35%;
+    --secondary-foreground: 37.5 30% 95%;
+    --muted: 148 15% 18%;
+    --muted-foreground: 37.5 15% 70%;
+    --accent: 27 35% 45%;
+    --accent-foreground: 37.5 30% 95%;
+    --destructive: 0 60% 45%;
+    --border: 148 15% 20%;
+    --input: 148 15% 20%;
+    --ring: 100 20% 75%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+
+  p, span, a, button, label, input, .font-sans {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+}
