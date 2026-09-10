@@ -12,6 +12,25 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+export const users = pgTable('users', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  authSubject: text('auth_subject').notNull().unique(),
+  email: text('email'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const pets = pgTable('pets', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  type: text('type').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('pets_user_id_idx').on(table.userId),
+]);
+
 export const cases = pgTable('cases', {
   id: uuid('id').defaultRandom().primaryKey(),
   petName: text('pet_name').notNull(),
@@ -20,11 +39,15 @@ export const cases = pgTable('cases', {
   urgency: text('urgency'),
   goal: text('goal'),
   currentStatus: text('current_status').notNull().default('active'),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
+  petId: uuid('pet_id').references(() => pets.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('cases_current_status_idx').on(table.currentStatus),
   index('cases_updated_at_idx').on(table.updatedAt),
+  index('cases_user_id_idx').on(table.userId),
+  index('cases_pet_id_idx').on(table.petId),
 ]);
 
 export const caseFactors = pgTable('case_factors', {
@@ -122,3 +145,5 @@ export type NewOutcome = typeof outcomes.$inferInsert;
 export type ResourceRecord = typeof resources.$inferSelect;
 export type InterventionRecord = typeof interventions.$inferSelect;
 export type RecommendationRecord = typeof recommendations.$inferSelect;
+export type UserRecord = typeof users.$inferSelect;
+export type PetRecord = typeof pets.$inferSelect;

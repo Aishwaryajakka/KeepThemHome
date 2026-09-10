@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useReducer, useRef } from 'react';
+import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import Header from '@/components/Header';
 import Hero from '@/components/Hero';
 import HowItWorks from '@/components/HowItWorks';
@@ -41,7 +41,9 @@ import {
   persistAssessmentCase,
   type AssessmentCaseState,
 } from '@/lib/assessment-session';
-import { useCaseSync } from '@/hooks/use-case-sync';
+import { structuredFactors, useCaseSync } from '@/hooks/use-case-sync';
+import { caseApi } from '@/lib/case-api';
+import { useAppAuth } from '@/auth/AuthProvider';
 import { mergeIntakeResult } from '@/lib/intake-merge';
 import type { IntakeResult } from '@/lib/intake-api';
 
@@ -58,6 +60,9 @@ const HISTORY_STATE_KEY = 'keepThemHomeScreen';
 
 export const HomePage: React.FC = () => {
   const [caseState, dispatch] = useReducer(assessmentReducer, undefined, loadAssessmentCase);
+  const auth = useAppAuth();
+  const [saveRequested, setSaveRequested] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const mainContentRef = useRef<HTMLElement>(null);
   const {
     currentScreen,
@@ -85,7 +90,43 @@ export const HomePage: React.FC = () => {
     dispatch({ type: 'update', patch: { backendCaseId: id } });
   }, []);
 
-  useCaseSync(caseState, retainBackendCaseId);
+  useCaseSync(caseState);
+
+  const saveCurrentPlan = useCallback(async () => {
+    if (!caseState.petName.trim() || !caseState.petType || !caseState.rootCause) return;
+    setSaveStatus('saving');
+    try {
+      const pet = await caseApi.createPet({ name: caseState.petName.trim(), type: caseState.petType });
+      const savedCase = await caseApi.createCase({
+        petId: pet.id, primaryBarrier: caseState.rootCause,
+        urgency: caseState.housing.urgency || null, goal: caseState.housing.goal || null,
+        currentStatus: 'active',
+      });
+      await caseApi.recordFactors(savedCase.id, structuredFactors({ ...caseState, backendCaseId: savedCase.id }));
+      retainBackendCaseId(savedCase.id);
+      setSaveStatus('saved');
+      setSaveRequested(false);
+    } catch {
+      setSaveStatus('error');
+      setSaveRequested(false);
+    }
+  }, [caseState, retainBackendCaseId]);
+
+  useEffect(() => {
+    if (saveRequested && auth.signedIn && saveStatus !== 'saving') void saveCurrentPlan();
+  }, [auth.signedIn, saveCurrentPlan, saveRequested, saveStatus]);
+
+  const handleSavePlan = () => {
+    if (!auth.configured) {
+      setSaveStatus('error');
+      return;
+    }
+    if (auth.signedIn) void saveCurrentPlan();
+    else {
+      setSaveRequested(true);
+      auth.openSignIn();
+    }
+  };
 
   const setCurrentScreen = useCallback((screen: AssessmentScreen) => {
     if (screen === currentScreen) return;
@@ -389,6 +430,10 @@ export const HomePage: React.FC = () => {
             goal={housingGoal}
             onTryPlan={handleTryPlan}
             onBack={handleBackToHousingComplete}
+            onSavePlan={handleSavePlan}
+            saveStatus={saveStatus}
+            contributingBarriers={contributingBarriers}
+            costConstraint={caseState.costConstraint}
           />
         )}
 

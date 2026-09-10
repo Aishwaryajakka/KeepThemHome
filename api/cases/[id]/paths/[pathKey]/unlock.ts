@@ -4,10 +4,11 @@ import { methodNotAllowed, parseBody, safeServerError } from '../../../../../ser
 import { generateSmallestUnlock } from '../../../../../server/services/counterfactual-service';
 import { uuidSchema } from '../../../../../server/validation/case';
 import { hypotheticalChangesSchema, pathKeySchema } from '../../../../../server/validation/counterfactual';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../../../server/services/ownership-service';
 
 type UnlockGenerator = typeof generateSmallestUnlock;
 
-export const createUnlockHandler = (generateUnlock: UnlockGenerator = generateSmallestUnlock) => async (
+export const createUnlockHandler = (generateUnlock: UnlockGenerator = generateSmallestUnlock, authorize: OwnedCaseResolver = resolveOwnedCase) => async (
   request: VercelRequest,
   response: VercelResponse,
 ) => {
@@ -20,6 +21,9 @@ export const createUnlockHandler = (generateUnlock: UnlockGenerator = generateSm
   if (!parsedBody.success) return response.status(400).json({ error: 'Invalid hypothetical changes' });
 
   try {
+    const access = await authorize(request, parsedId.data);
+    if (access.status === 'unauthenticated') return response.status(401).json({ error: 'Authentication required' });
+    if (access.status === 'not_found') return response.status(404).json({ error: 'Case not found' });
     const result = await generateUnlock(parsedId.data, parsedPath.data, parsedBody.data.appliedChanges ?? []);
     return result
       ? response.status(200).json(result)

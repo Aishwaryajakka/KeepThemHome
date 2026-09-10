@@ -1,29 +1,29 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { methodNotAllowed, parseBody, safeServerError } from '../../../server/http';
-import { getCase, updateCase } from '../../../server/services/case-service';
+import { resolveAppUser, type AppUserResolver } from '../../../server/services/auth-service';
+import { getCaseFactors, getOutcomes, updateOwnedCase } from '../../../server/services/case-service';
+import { getOwnedCase, getOwnedPet } from '../../../server/services/ownership-service';
 import { updateCaseSchema, uuidSchema } from '../../../server/validation/case';
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
+export const createCaseHandler = (resolveUser: AppUserResolver = resolveAppUser, services = { getOwnedCase, getOwnedPet, getCaseFactors, getOutcomes, updateOwnedCase }) => async (request: VercelRequest, response: VercelResponse) => {
+  if (!['GET', 'PATCH'].includes(request.method ?? '')) return methodNotAllowed(response, ['GET', 'PATCH']);
   const parsedId = uuidSchema.safeParse(request.query.id);
   if (!parsedId.success) return response.status(400).json({ error: 'Invalid case ID' });
-
   try {
+    const user = await resolveUser(request);
+    if (!user) return response.status(401).json({ error: 'Authentication required' });
+    const owned = await services.getOwnedCase(user.id, parsedId.data);
+    if (!owned) return response.status(404).json({ error: 'Case not found' });
     if (request.method === 'GET') {
-      const record = await getCase(parsedId.data);
-      return record
-        ? response.status(200).json({ case: record })
-        : response.status(404).json({ error: 'Case not found' });
+      const [factors, outcomes, pet] = await Promise.all([
+        services.getCaseFactors(owned.id), services.getOutcomes(owned.id),
+        owned.petId ? services.getOwnedPet(user.id, owned.petId) : undefined,
+      ]);
+      return response.status(200).json({ case: owned, pet: pet ?? null, factors, outcomes });
     }
-    if (request.method === 'PATCH') {
-      const parsed = parseBody(request, updateCaseSchema);
-      if (!parsed.success) return response.status(400).json({ error: 'Invalid request', issues: parsed.error.flatten() });
-      const updated = await updateCase(parsedId.data, parsed.data);
-      return updated
-        ? response.status(200).json({ case: updated })
-        : response.status(404).json({ error: 'Case not found' });
-    }
-    return methodNotAllowed(response, ['GET', 'PATCH']);
-  } catch {
-    return safeServerError(response);
-  }
-}
+    const parsed = parseBody(request, updateCaseSchema);
+    if (!parsed.success) return response.status(400).json({ error: 'Invalid request', issues: parsed.error.flatten() });
+    return response.status(200).json({ case: await services.updateOwnedCase(user.id, parsedId.data, parsed.data) });
+  } catch { return safeServerError(response); }
+};
+export default createCaseHandler();

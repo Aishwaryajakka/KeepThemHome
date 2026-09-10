@@ -15,6 +15,13 @@
       "when": 1789022802264,
       "tag": "0001_next_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789066799572,
+      "tag": "0002_chilly_eternity",
+      "breakpoints": true
     }
   ]
 }

@@ -14,10 +14,11 @@ const responseDouble = () => {
 };
 
 const request = (method: string, id = caseId) => ({ method, query: { id }, body: {} }) as unknown as VercelRequest;
+const owned = vi.fn(async () => ({ status: 'ok' as const, user: { id: 'user-a' }, caseRecord: { id: caseId } } as never));
 
 describe('retention paths API handler', () => {
   it('rejects invalid UUIDs and unsupported methods', async () => {
-    const pathsHandler = createPathsHandler(vi.fn());
+    const pathsHandler = createPathsHandler(vi.fn(), owned);
     const invalid = responseDouble();
     await pathsHandler(request('POST', 'bad-id'), invalid.response);
     expect(invalid.response.status).toHaveBeenCalledWith(400);
@@ -29,14 +30,14 @@ describe('retention paths API handler', () => {
   });
 
   it('returns 404 for a missing case', async () => {
-    const pathsHandler = createPathsHandler(vi.fn().mockResolvedValue(undefined));
+    const pathsHandler = createPathsHandler(vi.fn().mockResolvedValue(undefined), owned);
     const { response } = responseDouble();
     await pathsHandler(request('POST'), response);
     expect(response.status).toHaveBeenCalledWith(404);
   });
 
   it('returns the structured solver result', async () => {
-    const pathsHandler = createPathsHandler(vi.fn().mockResolvedValue({ caseId, paths: [] }));
+    const pathsHandler = createPathsHandler(vi.fn().mockResolvedValue({ caseId, paths: [] }), owned);
     const { response, json } = responseDouble();
     await pathsHandler(request('POST'), response);
     expect(response.status).toHaveBeenCalledWith(200);
@@ -44,7 +45,7 @@ describe('retention paths API handler', () => {
   });
 
   it('sanitizes service failures', async () => {
-    const pathsHandler = createPathsHandler(vi.fn().mockRejectedValue(new Error('database secret')));
+    const pathsHandler = createPathsHandler(vi.fn().mockRejectedValue(new Error('database secret')), owned);
     const { response, json } = responseDouble();
     await pathsHandler(request('POST'), response);
     expect(response.status).toHaveBeenCalledWith(500);

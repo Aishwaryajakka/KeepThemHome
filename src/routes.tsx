@@ -1,5 +1,6 @@
 import HomePage from './pages/HomePage';
 import type { ReactNode } from 'react';
+import MyPetsPage from './pages/MyPetsPage';
 
 export interface RouteConfig {
   name: string;
@@ -16,5 +17,6 @@ export const routes: RouteConfig[] = [
     path: '/',
     element: <HomePage />,
     public: true,
-  }
+  },
+  { name: 'My Pets', path: '/my-pets', element: <MyPetsPage /> },
 ];

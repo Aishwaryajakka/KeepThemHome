@@ -66,32 +66,15 @@ export const structuredFactors = (caseState: AssessmentCaseState): FactorInput[]
 
 export const useCaseSync = (
   caseState: AssessmentCaseState,
-  retainBackendCaseId: (id: string) => void,
 ) => {
-  const createAttemptKey = useRef<string | undefined>(undefined);
   const updateFingerprint = useRef<string | undefined>(undefined);
   const factorFingerprint = useRef<string | undefined>(undefined);
   const outcomeFingerprint = useRef<string | undefined>(undefined);
 
   useEffect(() => {
-    if (caseState.backendCaseId || !caseState.petName.trim() || !caseState.petType) return;
-    const key = `${caseState.petName.trim()}\u0000${caseState.petType}`;
-    if (createAttemptKey.current === key) return;
-    createAttemptKey.current = key;
-    void caseApi.createCase({
-      petName: caseState.petName.trim(),
-      petType: caseState.petType,
-      primaryBarrier: caseState.rootCause || null,
-      currentStatus: 'active',
-    }).then(({ id }) => retainBackendCaseId(id)).catch(() => undefined);
-  }, [caseState.backendCaseId, caseState.petName, caseState.petType, caseState.rootCause, retainBackendCaseId]);
-
-  useEffect(() => {
     if (!caseState.backendCaseId) return;
     const status = (outcomeStatus(caseState.outcome) ?? 'active') as ApiCaseStatus;
     const payload = {
-      petName: caseState.petName.trim(),
-      petType: caseState.petType || undefined,
       primaryBarrier: caseState.rootCause || null,
       urgency: caseState.housing.urgency || null,
       goal: caseState.housing.goal || null,

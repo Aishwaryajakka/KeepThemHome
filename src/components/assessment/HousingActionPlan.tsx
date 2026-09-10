@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, ExternalLink, HeartHandshake, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import type { HousingSituation, HousingTiming, HousingGoal } from '@/types/assessment';
+import type { BarrierType, HousingSituation, HousingTiming, HousingGoal } from '@/types/assessment';
 import { matchHousingResources } from '@/data/resources';
 import {
   caseApi,
@@ -19,6 +19,10 @@ import {
   type SupportedChangeCode,
   type UnlockResponse,
 } from '@/lib/case-api';
+import { solveRetentionPaths } from '../../../server/retention-paths/solver';
+import { exploreSmallestUnlock, applySupportedChanges } from '../../../server/counterfactual/engine';
+import { materializeSupportedChanges } from '../../../server/counterfactual/catalog';
+import type { NormalizedHousingCase } from '../../../server/retention-paths/domain';
 
 interface HousingActionPlanProps {
   backendCaseId?: string;
@@ -28,7 +32,13 @@ interface HousingActionPlanProps {
   goal: HousingGoal;
   onTryPlan: () => void;
   onBack: () => void;
+  onSavePlan?: () => void;
+  saveStatus?: 'idle' | 'saving' | 'saved' | 'error';
+  contributingBarriers?: BarrierType[];
+  costConstraint?: string;
 }
+
+const NO_CONTRIBUTING_BARRIERS: BarrierType[] = [];
 
 export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   backendCaseId,
@@ -38,6 +48,10 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   goal,
   onTryPlan,
   onBack,
+  onSavePlan,
+  saveStatus = 'idle',
+  contributingBarriers = NO_CONTRIBUTING_BARRIERS,
+  costConstraint = '',
 }) => {
   const displayName = petName.trim() || 'Luna';
   const [showOtherOptions, setShowOtherOptions] = useState(false);
@@ -53,6 +67,20 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   const matchedResources = backendPlan
     ? backendPlan.interventions.flatMap(({ resources }) => resources).slice(0, 3)
     : fallbackResources;
+  const localFacts = useMemo<NormalizedHousingCase>(() => ({
+    primaryBarrier: 'housing', contributingBarriers, situation, urgency: timing, goal,
+    costConstraint: costConstraint || null,
+    constraints: {
+      goalSupportsStay: goal === 'Stay where I am' || goal === 'Either could work' ? true : goal === 'Move' ? false : 'unknown',
+      goalSupportsMove: goal === 'Move' || goal === 'Either could work' ? true : goal === 'Stay where I am' ? false : 'unknown',
+      housingResolutionPossible: 'unknown', behaviorContributor: contributingBarriers.includes('behavior'),
+      behaviorMitigationAvailable: 'unknown', temporaryCareAvailable: 'unknown', underlyingIssueResolutionPossible: 'unknown',
+      petFriendlyHousingAvailable: 'unknown', moveRequirementsMet: 'unknown',
+    },
+  }), [contributingBarriers, costConstraint, goal, situation, timing]);
+  const localPathResults = (facts: NormalizedHousingCase): RetentionPathResult[] => solveRetentionPaths(facts).map((path) => ({
+    ...path, steps: path.steps.map((step) => ({ ...step, resources: [] })),
+  }));
 
   useEffect(() => {
     if (!backendCaseId) {
@@ -87,10 +115,17 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   }, [backendCaseId, retentionPaths, appliedChanges]);
 
   useEffect(() => {
-    if (!backendCaseId || !retentionPaths) return;
+    if (!retentionPaths) return;
     let active = true;
     for (const path of retentionPaths) {
-      void caseApi.getPathEvidence(backendCaseId, path.key)
+      const request = backendCaseId
+        ? caseApi.getPathEvidence(backendCaseId, path.key)
+        : caseApi.previewPathEvidence({
+          pathKey: path.key, primaryBarrier: 'housing', situation: situation || null, urgency: timing || null,
+          goal: goal || null, behaviorContributor: contributingBarriers.includes('behavior'),
+          costConstraint: costConstraint || null, contributingBarriers,
+        });
+      void request
         .then((result) => {
           if (active) setPathEvidence((current) => ({ ...current, [path.key]: result }));
         })
@@ -99,11 +134,11 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
         });
     }
     return () => { active = false; };
-  }, [backendCaseId, retentionPaths]);
+  }, [backendCaseId, contributingBarriers, costConstraint, goal, retentionPaths, situation, timing]);
 
   useEffect(() => {
     if (!backendCaseId) {
-      setRetentionPaths(null);
+      setRetentionPaths(localPathResults(localFacts));
       return;
     }
     let active = true;
@@ -115,14 +150,16 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
         if (active) setRetentionPaths(null);
       });
     return () => { active = false; };
-  }, [backendCaseId]);
+  }, [backendCaseId, localFacts]);
 
   const exploreUnlock = async (pathKey: string) => {
-    if (!backendCaseId) return;
     setUnlockingPath(pathKey);
     setUnlockErrors((current) => ({ ...current, [pathKey]: false }));
     try {
-      const result = await caseApi.getSmallestUnlock(backendCaseId, pathKey, appliedChanges);
+      const result = backendCaseId
+        ? await caseApi.getSmallestUnlock(backendCaseId, pathKey, appliedChanges)
+        : exploreSmallestUnlock(localFacts, pathKey, appliedChanges) as unknown as UnlockResponse | undefined;
+      if (!result) throw new Error('No path');
       setUnlockResults((current) => ({ ...current, [pathKey]: result }));
     } catch {
       setUnlockErrors((current) => ({ ...current, [pathKey]: true }));
@@ -132,16 +169,18 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   };
 
   const applyUnlock = async (result: UnlockResponse) => {
-    if (!backendCaseId || !result.smallestUnlock) return;
+    if (!result.smallestUnlock) return;
     const nextChanges = Array.from(new Set([
       ...appliedChanges,
       ...result.smallestUnlock.changes.map(({ code }) => code),
     ]));
     try {
-      const response = await caseApi.getRetentionPaths(backendCaseId, nextChanges);
+      const paths = backendCaseId
+        ? (await caseApi.getRetentionPaths(backendCaseId, nextChanges)).paths
+        : localPathResults(applySupportedChanges(localFacts, materializeSupportedChanges(localFacts, nextChanges)));
       setExplanations({});
       setAppliedChanges(nextChanges);
-      setRetentionPaths(response.paths);
+      setRetentionPaths(paths);
       setUnlockResults({});
       setUnlockErrors({});
     } catch {
@@ -150,12 +189,11 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   };
 
   const resetHypotheticals = async () => {
-    if (!backendCaseId) return;
     try {
-      const response = await caseApi.getRetentionPaths(backendCaseId, []);
+      const paths = backendCaseId ? (await caseApi.getRetentionPaths(backendCaseId, [])).paths : localPathResults(localFacts);
       setExplanations({});
       setAppliedChanges([]);
-      setRetentionPaths(response.paths);
+      setRetentionPaths(paths);
       setUnlockResults({});
       setUnlockErrors({});
     } catch {
@@ -215,7 +253,7 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
         </div>
 
         <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#2E5440] font-normal leading-tight tracking-tight mb-3 sm:mb-4 text-balance">
-          {retentionPaths ? `Possible paths to keeping ${displayName} home` : `Your Keep ${displayName} Home Plan`}
+          Your Keep {displayName} Home Plan
         </h1>
 
         <p className="font-sans text-base sm:text-lg text-[#2D2D2D]/85 leading-relaxed mb-4 text-pretty">
@@ -236,6 +274,14 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
           <span className="font-semibold text-[#2E5440] mr-1.5">Your situation:</span>
           {getSituationSummary()}
         </div>
+        {onSavePlan && (
+          <div className="mt-4 flex flex-wrap items-center gap-3" aria-live="polite">
+            <Button type="button" onClick={onSavePlan} disabled={saveStatus === 'saving' || saveStatus === 'saved'} className="bg-[#2E5440] text-[#FAF7F2]">
+              {saveStatus === 'saving' ? 'Saving…' : saveStatus === 'saved' ? `${displayName}’s plan is saved` : `Save ${displayName}’s plan`}
+            </Button>
+            {saveStatus === 'error' && <p className="text-sm text-[#7A3028]">Sign-in or saving is unavailable. Your progress is still stored in this browser.</p>}
+          </div>
+        )}
       </div>
 
       {/* Prioritized Action Plan Cards */}

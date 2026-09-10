@@ -17,6 +17,8 @@ const backendCase: CaseResponse = {
   urgency: null,
   goal: null,
   currentStatus: 'active',
+  userId: '650e8400-e29b-41d4-a716-446655440000',
+  petId: '750e8400-e29b-41d4-a716-446655440000',
   createdAt: '2026-09-10T00:00:00.000Z',
   updatedAt: '2026-09-10T00:00:00.000Z',
 };
@@ -276,46 +278,36 @@ describe('Keep Them Home demo flows', () => {
     expect(screen.getByRole('heading', { name: /What’s making it difficult/ })).toBeInTheDocument();
   });
 
-  it('retains a successful backend ID and avoids duplicate case creation', async () => {
+  it('keeps anonymous assessment local instead of creating a claimable backend case', async () => {
     const createCase = vi.spyOn(caseApi, 'createCase').mockResolvedValue(backendCase);
-    vi.spyOn(caseApi, 'updateCase').mockResolvedValue(backendCase);
-    vi.spyOn(caseApi, 'recordFactors').mockResolvedValue({});
     const user = await enterLuna();
-
-    await waitFor(() => {
-      const stored = JSON.parse(sessionStorage.getItem(ASSESSMENT_SESSION_KEY) ?? '{}');
-      expect(stored.caseState?.backendCaseId).toBe(backendCase.id);
-    });
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('checkbox', { name: /^Housing/ }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-
-    expect(createCase).toHaveBeenCalledTimes(1);
+    const stored = JSON.parse(sessionStorage.getItem(ASSESSMENT_SESSION_KEY) ?? '{}');
+    expect(stored.caseState?.petName).toBe('Luna');
+    expect(stored.caseState?.backendCaseId).toBeUndefined();
+    expect(createCase).not.toHaveBeenCalled();
   });
 
-  it('continues navigation when backend case updates fail', async () => {
-    vi.spyOn(caseApi, 'createCase').mockResolvedValue(backendCase);
-    vi.spyOn(caseApi, 'updateCase').mockRejectedValue(new Error('API unavailable'));
-    vi.spyOn(caseApi, 'recordFactors').mockRejectedValue(new Error('API unavailable'));
+  it('continues navigation without private API updates for an unsaved assessment', async () => {
+    const update = vi.spyOn(caseApi, 'updateCase').mockRejectedValue(new Error('API unavailable'));
     const user = await enterLuna();
-    await waitFor(() => expect(caseApi.updateCase).toHaveBeenCalled());
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('checkbox', { name: /^Housing/ }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(screen.getByRole('heading', { name: 'What’s happening with your housing?' })).toBeInTheDocument();
+    expect(update).not.toHaveBeenCalled();
   });
 
-  it('attempts outcome synchronization without blocking the keeping flow', async () => {
-    vi.spyOn(caseApi, 'createCase').mockResolvedValue(backendCase);
-    vi.spyOn(caseApi, 'updateCase').mockResolvedValue(backendCase);
-    vi.spyOn(caseApi, 'recordFactors').mockResolvedValue({});
+  it('keeps the anonymous outcome flow functional without writing a private case', async () => {
     const recordOutcome = vi.spyOn(caseApi, 'recordOutcome').mockResolvedValue({});
     const user = await reachHousingPlan();
     await user.click(screen.getByRole('button', { name: /I’ll try this plan/ }));
     await user.click(screen.getByRole('button', { name: /We’re keeping Luna/ }));
 
-    await waitFor(() => expect(recordOutcome).toHaveBeenCalledWith(backendCase.id, 'keeping'));
+    expect(recordOutcome).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     expect(screen.getByRole('heading', { name: 'Luna is staying home.' })).toBeInTheDocument();
   });

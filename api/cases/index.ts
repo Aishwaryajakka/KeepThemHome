@@ -1,17 +1,21 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { methodNotAllowed, parseBody, safeServerError } from '../../server/http';
-import { createCase } from '../../server/services/case-service';
-import { createCaseSchema } from '../../server/validation/case';
+import { resolveAppUser, type AppUserResolver } from '../../server/services/auth-service';
+import { createOwnedCase, listOwnedCases } from '../../server/services/case-service';
+import { getOwnedPet } from '../../server/services/ownership-service';
+import { createOwnedCaseSchema } from '../../server/validation/case';
 
-export default async function handler(request: VercelRequest, response: VercelResponse) {
-  if (request.method !== 'POST') return methodNotAllowed(response, ['POST']);
-
+export const createCasesHandler = (resolveUser: AppUserResolver = resolveAppUser, services = { createOwnedCase, listOwnedCases, getOwnedPet }) => async (request: VercelRequest, response: VercelResponse) => {
+  if (!['GET', 'POST'].includes(request.method ?? '')) return methodNotAllowed(response, ['GET', 'POST']);
   try {
-    const parsed = parseBody(request, createCaseSchema);
+    const user = await resolveUser(request);
+    if (!user) return response.status(401).json({ error: 'Authentication required' });
+    if (request.method === 'GET') return response.status(200).json({ cases: await services.listOwnedCases(user.id) });
+    const parsed = parseBody(request, createOwnedCaseSchema);
     if (!parsed.success) return response.status(400).json({ error: 'Invalid request', issues: parsed.error.flatten() });
-    const created = await createCase(parsed.data);
-    return response.status(201).json({ case: created });
-  } catch {
-    return safeServerError(response);
-  }
-}
+    const pet = await services.getOwnedPet(user.id, parsed.data.petId);
+    if (!pet) return response.status(404).json({ error: 'Pet not found' });
+    return response.status(201).json({ case: await services.createOwnedCase(user.id, pet, parsed.data) });
+  } catch { return safeServerError(response); }
+};
+export default createCasesHandler();

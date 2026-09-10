@@ -4,10 +4,11 @@ import { UnsupportedCounterfactualError } from '../../../server/counterfactual/c
 import { generateRetentionPaths } from '../../../server/services/path-service';
 import { uuidSchema } from '../../../server/validation/case';
 import { hypotheticalChangesSchema } from '../../../server/validation/counterfactual';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../server/services/ownership-service';
 
 type PathGenerator = typeof generateRetentionPaths;
 
-export const createPathsHandler = (generatePaths: PathGenerator = generateRetentionPaths) => async (
+export const createPathsHandler = (generatePaths: PathGenerator = generateRetentionPaths, authorize: OwnedCaseResolver = resolveOwnedCase) => async (
   request: VercelRequest,
   response: VercelResponse,
 ) => {
@@ -18,6 +19,9 @@ export const createPathsHandler = (generatePaths: PathGenerator = generateRetent
   if (!parsedBody.success) return response.status(400).json({ error: 'Invalid hypothetical changes' });
 
   try {
+    const access = await authorize(request, parsedId.data);
+    if (access.status === 'unauthenticated') return response.status(401).json({ error: 'Authentication required' });
+    if (access.status === 'not_found') return response.status(404).json({ error: 'Case not found' });
     const result = await generatePaths(parsedId.data, parsedBody.data.appliedChanges ?? []);
     return result
       ? response.status(200).json(result)

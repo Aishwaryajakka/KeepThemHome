@@ -4,10 +4,11 @@ import { methodNotAllowed, parseBody, safeServerError } from '../../../server/ht
 import { ExplanationPathNotFoundError, explainCasePath } from '../../../server/services/explanation-service';
 import { uuidSchema } from '../../../server/validation/case';
 import { explanationRequestSchema } from '../../../server/validation/explanation';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../server/services/ownership-service';
 
 type Explainer = typeof explainCasePath;
 
-export const createExplainHandler = (explain: Explainer = explainCasePath) => async (
+export const createExplainHandler = (explain: Explainer = explainCasePath, authorize: OwnedCaseResolver = resolveOwnedCase) => async (
   request: VercelRequest,
   response: VercelResponse,
 ) => {
@@ -17,6 +18,9 @@ export const createExplainHandler = (explain: Explainer = explainCasePath) => as
   const parsedBody = parseBody(request, explanationRequestSchema);
   if (!parsedBody.success) return response.status(400).json({ error: 'Invalid explanation request' });
   try {
+    const access = await authorize(request, parsedId.data);
+    if (access.status === 'unauthenticated') return response.status(401).json({ error: 'Authentication required' });
+    if (access.status === 'not_found') return response.status(404).json({ error: 'Case not found' });
     const result = await explain(
       parsedId.data,
       parsedBody.data.pathKey,

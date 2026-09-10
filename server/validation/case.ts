@@ -20,6 +20,14 @@ export const createCaseSchema = z.object({
   currentStatus: caseStatusSchema.optional(),
 }).strict();
 
+export const createOwnedCaseSchema = z.object({
+  petId: uuidSchema,
+  primaryBarrier: primaryBarrierSchema.nullable().optional(),
+  urgency: urgencySchema.nullable().optional(),
+  goal: goalSchema.nullable().optional(),
+  currentStatus: caseStatusSchema.optional(),
+}).strict();
+
 export const updateCaseSchema = z.object({
   petName: z.string().trim().min(1).max(100).optional(),
   petType: petTypeSchema.optional(),
@@ -51,6 +59,7 @@ export const createOutcomeSchema = z.object({
 }).strict();
 
 export type CreateCaseInput = z.infer<typeof createCaseSchema>;
+export type CreateOwnedCaseInput = z.infer<typeof createOwnedCaseSchema>;
 export type UpdateCaseInput = z.infer<typeof updateCaseSchema>;
 export type CreateFactorsInput = z.infer<typeof createFactorsSchema>;
 export type CreateOutcomeInput = z.infer<typeof createOutcomeSchema>;

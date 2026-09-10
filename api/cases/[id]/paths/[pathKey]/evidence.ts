@@ -3,10 +3,11 @@ import { methodNotAllowed, safeServerError } from '../../../../../server/http';
 import { EvidencePathNotFoundError, getCasePathEvidence } from '../../../../../server/services/evidence-service';
 import { uuidSchema } from '../../../../../server/validation/case';
 import { pathKeySchema } from '../../../../../server/validation/counterfactual';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../../../server/services/ownership-service';
 
 type EvidenceGetter = typeof getCasePathEvidence;
 
-export const createEvidenceHandler = (getEvidence: EvidenceGetter = getCasePathEvidence) => async (
+export const createEvidenceHandler = (getEvidence: EvidenceGetter = getCasePathEvidence, authorize: OwnedCaseResolver = resolveOwnedCase) => async (
   request: VercelRequest,
   response: VercelResponse,
 ) => {
@@ -17,6 +18,9 @@ export const createEvidenceHandler = (getEvidence: EvidenceGetter = getCasePathE
   if (!parsedPath.success) return response.status(400).json({ error: 'Invalid path key' });
 
   try {
+    const access = await authorize(request, parsedId.data);
+    if (access.status === 'unauthenticated') return response.status(401).json({ error: 'Authentication required' });
+    if (access.status === 'not_found') return response.status(404).json({ error: 'Case not found' });
     const result = await getEvidence(parsedId.data, parsedPath.data, []);
     return result
       ? response.status(200).json(result)

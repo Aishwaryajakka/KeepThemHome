@@ -11,20 +11,40 @@ export interface CaseResponse {
   urgency: string | null;
   goal: string | null;
   currentStatus: ApiCaseStatus;
+  userId: string | null;
+  petId: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateCaseInput {
-  petName: string;
-  petType: ApiPetType;
+  petId: string;
   primaryBarrier?: ApiBarrier | null;
   urgency?: string | null;
   goal?: string | null;
   currentStatus?: ApiCaseStatus;
 }
 
-export type UpdateCaseInput = Partial<CreateCaseInput>;
+export interface UpdateCaseInput {
+  primaryBarrier?: ApiBarrier | null;
+  urgency?: string | null;
+  goal?: string | null;
+  currentStatus?: ApiCaseStatus;
+}
+
+export interface PetResponse {
+  id: string;
+  userId: string;
+  name: string;
+  type: ApiPetType;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PersistedFactor extends FactorInput { id: string; caseId: string; createdAt: string; }
+export interface PersistedOutcome { id: string; caseId: string; status: ApiOutcomeStatus; unresolvedBarrier: string | null; notes: string | null; createdAt: string; }
+export interface SavedCaseSummary { case: CaseResponse; pet: PetResponse; factors: PersistedFactor[]; latestOutcome: PersistedOutcome | null; }
+export interface SavedCaseDetail { case: CaseResponse; pet: PetResponse | null; factors: PersistedFactor[]; outcomes: PersistedOutcome[]; }
 
 export interface FactorInput {
   factorType: string;
@@ -194,23 +214,36 @@ export interface PathEvidenceResponse {
 
 const explanationCache = new Map<string, Promise<ExplanationResponse>>();
 
+let authTokenProvider: (() => Promise<string | null>) | undefined;
+export const configureAuthTokenProvider = (provider: (() => Promise<string | null>) | undefined) => {
+  authTokenProvider = provider;
+};
+
 const requestJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
+  const token = await authTokenProvider?.();
   const response = await fetch(url, {
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers },
   });
   if (!response.ok) throw new Error(`Case API request failed with status ${response.status}`);
   return response.json() as Promise<T>;
 };
 
 export const caseApi = {
+  createPet: async (input: { name: string; type: ApiPetType }) =>
+    (await requestJson<{ pet: PetResponse }>('/api/pets', { method: 'POST', body: JSON.stringify(input) })).pet,
+
+  listPets: async () => (await requestJson<{ pets: PetResponse[] }>('/api/pets')).pets,
+
+  listCases: async () => (await requestJson<{ cases: SavedCaseSummary[] }>('/api/cases')).cases,
+
   createCase: async (input: CreateCaseInput) =>
     (await requestJson<{ case: CaseResponse }>('/api/cases', {
       method: 'POST', body: JSON.stringify(input),
     })).case,
 
   getCase: async (id: string) =>
-    (await requestJson<{ case: CaseResponse }>(`/api/cases/${id}`)).case,
+    requestJson<SavedCaseDetail>(`/api/cases/${id}`),
 
   updateCase: async (id: string, input: UpdateCaseInput) =>
     (await requestJson<{ case: CaseResponse }>(`/api/cases/${id}`, {
@@ -242,6 +275,11 @@ export const caseApi = {
 
   getPathEvidence: async (id: string, pathKey: string) =>
     requestJson<PathEvidenceResponse>(`/api/cases/${id}/paths/${pathKey}/evidence`),
+
+  previewPathEvidence: async (input: {
+    pathKey: string; primaryBarrier: ApiBarrier; situation: string | null; urgency: string | null; goal: string | null;
+    behaviorContributor: boolean; costConstraint: string | null; contributingBarriers: ApiBarrier[];
+  }) => requestJson<PathEvidenceResponse>('/api/evidence/preview', { method: 'POST', body: JSON.stringify(input) }),
 
   getPathExplanation: async (
     id: string,

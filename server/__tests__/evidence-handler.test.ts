@@ -5,6 +5,7 @@ import { getCasePathEvidence } from '../services/evidence-service';
 import type { NormalizedHousingCase, PathEvaluation } from '../retention-paths/domain';
 
 const caseId = '550e8400-e29b-41d4-a716-446655440000';
+const owned = vi.fn(async () => ({ status: 'ok' as const, user: { id: 'user-a' }, caseRecord: { id: caseId } } as never));
 const responseDouble = () => {
   const json = vi.fn();
   const response = { setHeader: vi.fn(), status: vi.fn(() => response), json } as unknown as VercelResponse;
@@ -14,7 +15,7 @@ const responseDouble = () => {
 describe('GET /api/cases/:id/paths/:pathKey/evidence', () => {
   it('validates the persisted-case identifier and trusted path key', async () => {
     const getEvidence = vi.fn();
-    const handler = createEvidenceHandler(getEvidence);
+    const handler = createEvidenceHandler(getEvidence, owned);
     const invalidId = responseDouble();
     await handler({ method: 'GET', query: { id: 'bad', pathKey: 'move_with_pet' } } as unknown as VercelRequest, invalidId.response);
     expect(invalidId.response.status).toHaveBeenCalledWith(400);
@@ -51,7 +52,7 @@ describe('GET /api/cases/:id/paths/:pathKey/evidence', () => {
     const result = { caseId, pathKey: 'remain_in_current_housing', whyThisApproach: 'Housing matters.', evidence: [] };
     const getEvidence = vi.fn().mockResolvedValue(result);
     const { response, json } = responseDouble();
-    await createEvidenceHandler(getEvidence)({
+    await createEvidenceHandler(getEvidence, owned)({
       method: 'GET', query: { id: caseId, pathKey: 'remain_in_current_housing' },
       body: { claim: 'THIS_WILL_WORK', url: 'https://attacker.example', appliedChanges: ['INVENTED'] },
     } as unknown as VercelRequest, response);
@@ -60,12 +61,22 @@ describe('GET /api/cases/:id/paths/:pathKey/evidence', () => {
   });
 
   it('rejects unsupported methods and returns 404 for a missing persisted case', async () => {
-    const handler = createEvidenceHandler(vi.fn().mockResolvedValue(undefined));
+    const handler = createEvidenceHandler(vi.fn().mockResolvedValue(undefined), owned);
     const method = responseDouble();
     await handler({ method: 'POST', query: { id: caseId, pathKey: 'move_with_pet' } } as unknown as VercelRequest, method.response);
     expect(method.response.status).toHaveBeenCalledWith(405);
     const missing = responseDouble();
     await handler({ method: 'GET', query: { id: caseId, pathKey: 'move_with_pet' } } as unknown as VercelRequest, missing.response);
     expect(missing.response.status).toHaveBeenCalledWith(404);
+  });
+
+  it('does not expose case-aware evidence for a foreign case', async () => {
+    const getEvidence = vi.fn();
+    const { response } = responseDouble();
+    await createEvidenceHandler(getEvidence, vi.fn(async () => ({ status: 'not_found' as const })))({
+      method: 'GET', query: { id: caseId, pathKey: 'move_with_pet' },
+    } as unknown as VercelRequest, response);
+    expect(response.status).toHaveBeenCalledWith(404);
+    expect(getEvidence).not.toHaveBeenCalled();
   });
 });

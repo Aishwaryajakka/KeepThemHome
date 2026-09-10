@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { AppWrapper } from "./components/common/PageMeta.tsx";
 import "./index.css";
+import { AuthProvider } from './auth/AuthProvider';
 
 Sentry.init({
   dsn: import.meta.env['VITE_SENTRY_DSN'] as string | undefined,
@@ -12,7 +13,7 @@ Sentry.init({
 createRoot(document.getElementById("root")!).render(
   <Sentry.ErrorBoundary fallback={<p>应用发生错误，请刷新页面重试</p>}>
     <AppWrapper>
-      <App />
+      <AuthProvider><App /></AuthProvider>
     </AppWrapper>
   </Sentry.ErrorBoundary>
 );

@@ -33,6 +33,29 @@ pnpm build
 
 The API supports cases, structured factors, reported outcomes, active verified resources, and deterministic Housing plans. Database failures do not block the assessment: `sessionStorage` remains the local resilience layer, and the Housing plan retains its local Product Pass 3 resource matcher as a fallback.
 
+## Authentication and saved pets
+
+Clerk authentication uses the current `@clerk/react` client package and the centralized `@clerk/backend` request verifier. Clerk owns sign-in, sessions, and the stable authenticated subject. Neon remains the application database for minimal internal users, pets, cases, factors, outcomes, recommendations, resources, and interventions. Email is optional metadata and is never ownership authority.
+
+Anonymous owners can complete intake, use the deterministic local Housing path solver and Smallest Unlock, view public resources and curated evidence previews, and retain refresh-safe `sessionStorage` state. No anonymous database case is created. “Save Luna’s plan” opens Clerk only after the plan has provided value; after sign-in, validated state creates or reuses an owned pet and active case and synchronizes its structured factors. The confirmation says the plan is saved and does not imply a successful outcome.
+
+`/my-pets` lists the authenticated owner’s saved pets and most recent cases. Continuing a case reloads the owned pet, case, factors, and outcomes from Neon, validates the reconstructed assessment state, stores it as the active local session, and opens the existing plan without repeating intake. Opening a different pet replaces rather than merges the active assessment.
+
+Required configuration:
+
+```sh
+VITE_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+CLERK_PUBLISHABLE_KEY=
+CLERK_AUTHORIZED_PARTIES=http://localhost:5173,https://your-production-domain.example
+```
+
+`CLERK_SECRET_KEY` and `DATABASE_URL` are server-only. `CLERK_AUTHORIZED_PARTIES` is optional but recommended for local and production origins. Production must configure matching Clerk redirect/origin settings and apply additive migration `drizzle/0002_chilly_eternity.sql` before saved-case endpoints are used.
+
+Public endpoints are `POST /api/intake/extract`, `GET /api/resources`, and the validated anonymous `POST /api/evidence/preview`. `/api/me`, `/api/pets*`, `/api/cases*`, and all case-specific factors, outcomes, plan, paths, unlock, explanation, and evidence endpoints require a valid Clerk session. Protected object lookups are scoped by internal user ID; unauthenticated requests return `401`, while missing and foreign objects both return privacy-preserving `404`.
+
+Pass 12 adds no task/action tracking, notifications, vector columns, embeddings, similarity search, or RAG. Unit tests use injected identities and do not call Clerk. Live Clerk and Neon verification require local credentials and are reported separately from deterministic validation.
+
 ## Verified resources and deterministic plans
 
 The catalog seed uses stable resource slugs and intervention keys. It updates existing metadata and relationships without creating duplicate records:

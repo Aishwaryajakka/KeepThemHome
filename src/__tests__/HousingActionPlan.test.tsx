@@ -74,7 +74,7 @@ describe('HousingActionPlan backend fallback', () => {
       }],
     });
     render(<HousingActionPlan {...props} />);
-    expect(await screen.findByRole('heading', { name: 'Possible paths to keeping Luna home' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Your Keep Luna Home Plan' })).toBeInTheDocument();
     expect(screen.getByText('CONDITIONAL')).toBeInTheDocument();
     expect(screen.getByText('Clarify the complaint')).toBeInTheDocument();
     expect(screen.getByText('Resolution has not been confirmed.')).toBeInTheDocument();
