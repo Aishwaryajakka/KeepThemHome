@@ -46,12 +46,24 @@ export const factorSchema = z.object({
   confidence: z.number().min(0).max(1).nullable().optional(),
 }).strict();
 
+const factorListSchema = z.array(factorSchema).min(1).max(40);
+
 export const createFactorsSchema = z.object({
-  factors: z.array(factorSchema).min(1).max(40),
+  factors: factorListSchema,
 }).strict().refine(
   ({ factors }) => new Set(factors.map(({ factorType, source }) => `${source}:${factorType}`)).size === factors.length,
   'Duplicate factor keys are not allowed',
 );
+
+export const saveCaseSchema = z.object({
+  caseId: uuidSchema.optional(),
+  pet: z.object({
+    name: z.string().trim().min(1).max(100),
+    type: petTypeSchema,
+  }).strict(),
+  case: createOwnedCaseSchema.omit({ petId: true }),
+  factors: factorListSchema,
+}).strict();
 
 export const createOutcomeSchema = z.object({
   status: outcomeStatusSchema,
@@ -64,4 +76,5 @@ export type CreateCaseInput = z.infer<typeof createCaseSchema>;
 export type CreateOwnedCaseInput = z.infer<typeof createOwnedCaseSchema>;
 export type UpdateCaseInput = z.infer<typeof updateCaseSchema>;
 export type CreateFactorsInput = z.infer<typeof createFactorsSchema>;
+export type SaveCaseInput = z.infer<typeof saveCaseSchema>;
 export type CreateOutcomeInput = z.infer<typeof createOutcomeSchema>;

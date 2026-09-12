@@ -27,6 +27,7 @@ const handlerSet = () => {
     plan: make(), paths: make(), unlock: make(), explain: make(), evidence: make(), intake: make(),
     resources: make(), evidencePreview: make(),
     actions: make(), action: make(), actionOutcome: make(), similar: make(),
+    saveCase: make(),
   };
   return handlers;
 };
@@ -39,6 +40,7 @@ describe('consolidated API router', () => {
     [`pets/${petId}`, 'GET', 'pet'],
     ['cases', 'GET', 'cases'],
     ['cases', 'POST', 'cases'],
+    ['cases/save', 'POST', 'saveCase'],
     [`cases/${caseId}`, 'GET', 'case'],
     [`cases/${caseId}/factors`, 'GET', 'factors'],
     [`cases/${caseId}/outcomes`, 'POST', 'outcomes'],
@@ -77,6 +79,17 @@ describe('consolidated API router', () => {
     await createApiRouter(handlers)(routed, responseDouble().response);
     expect(handlers.resources).toHaveBeenCalledOnce();
     expect(routed.query).toEqual({ category: 'housing-search' });
+  });
+
+  it('preserves the Authorization header when routing /api/me', async () => {
+    const handlers = handlerSet();
+    const routed = request('GET', 'me');
+    routed.headers = { authorization: 'Bearer test-token' };
+    await createApiRouter(handlers)(routed, responseDouble().response);
+    expect(handlers.me).toHaveBeenCalledWith(
+      expect.objectContaining({ headers: expect.objectContaining({ authorization: 'Bearer test-token' }) }),
+      expect.anything(),
+    );
   });
 
   it('falls back to the original API URL when no rewrite parameter is present', async () => {

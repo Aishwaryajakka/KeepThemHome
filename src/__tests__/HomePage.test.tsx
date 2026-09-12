@@ -11,6 +11,11 @@ import { caseApi, type CaseResponse } from '@/lib/case-api';
 import { MemoryRouter } from 'react-router-dom';
 import { DemoModeProvider } from '@/demo/DemoModeProvider';
 
+const signedOutAuth = () => ({ configured: true, loaded: true, signedIn: false, serverReady: false, status: 'SIGNED_OUT' as const, error: null, signingOut: false, openSignIn: vi.fn(), signOut: vi.fn(), retry: vi.fn() });
+let authState = signedOutAuth();
+vi.mock('@/auth/AuthProvider', () => ({ useAppAuth: () => authState }));
+vi.mock('@clerk/react', () => ({ UserButton: () => <button type="button">Account</button> }));
+
 const backendCase: CaseResponse = {
   id: '550e8400-e29b-41d4-a716-446655440000',
   petName: 'Luna',
@@ -66,12 +71,36 @@ const reachHousingPlan = async () => {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  authState = signedOutAuth();
   sessionStorage.clear();
   window.history.replaceState({}, '', '/');
   vi.stubGlobal('scrollTo', vi.fn());
 });
 
 describe('Keep Them Home demo flows', () => {
+  it('shows Saved only after the atomic server save succeeds', async () => {
+    authState = { ...authState, signedIn: true, serverReady: true, status: 'SIGNED_IN_READY' };
+    let resolveSave: ((value: never) => void) | undefined;
+    const pending = new Promise((resolve) => { resolveSave = resolve; });
+    const save = vi.spyOn(caseApi, 'saveAssessment').mockReturnValue(pending as never);
+    const user = await reachHousingPlan();
+    await user.click(screen.getByRole('button', { name: 'Save Luna’s plan' }));
+    expect(screen.getByRole('button', { name: 'Saving Luna’s plan…' })).toBeDisabled();
+    expect(screen.queryByText('Luna’s plan is saved.')).not.toBeInTheDocument();
+    resolveSave?.({ case: backendCase, pet: { id: backendCase.petId }, factors: [] } as never);
+    expect(await screen.findByText('Luna’s plan is saved.')).toBeInTheDocument();
+    expect(save).toHaveBeenCalledOnce();
+  });
+
+  it('never shows Saved when the atomic server save fails', async () => {
+    authState = { ...authState, signedIn: true, serverReady: true, status: 'SIGNED_IN_READY' };
+    vi.spyOn(caseApi, 'saveAssessment').mockRejectedValue(new Error('Server rejected save'));
+    const user = await reachHousingPlan();
+    await user.click(screen.getByRole('button', { name: 'Save Luna’s plan' }));
+    expect(await screen.findByText('We couldn’t save Luna’s plan.')).toBeInTheDocument();
+    expect(screen.queryByText('Luna’s plan is saved.')).not.toBeInTheDocument();
+  });
+
   it('renders the owner-facing brand foundation and landing story', () => {
     renderHome();
 
@@ -100,8 +129,8 @@ describe('Keep Them Home demo flows', () => {
     expect(screen.queryByRole('navigation', { name: 'Primary navigation' })).not.toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: 'Footer navigation' })).not.toBeInTheDocument();
     expect(screen.getByRole('navigation', { name: 'Product footer navigation' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Exit' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Exit' }));
+    expect(screen.getByRole('button', { name: 'Exit case' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Exit case' }));
     expect(screen.getByRole('navigation', { name: 'Primary navigation' })).toBeInTheDocument();
   });
 

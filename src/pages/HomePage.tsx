@@ -51,7 +51,7 @@ import { useDemoMode } from '@/demo/DemoModeProvider';
 import AuthenticatedHome from '@/components/AuthenticatedHome';
 import DomainDetailsScreen from '@/components/assessment/DomainDetailsScreen';
 import { restorePersistedCase } from '@/lib/persisted-case';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 type AssessmentAction =
   | { type: 'update'; patch: Partial<AssessmentCaseState> }
@@ -79,6 +79,9 @@ export const HomePage: React.FC = () => {
   const [caseState, dispatch] = useReducer(assessmentReducer, undefined, loadAssessmentCase);
   const auth = useAppAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { petId: routePetId, caseId: routeCaseId } = useParams();
+  const [restoreStatus, setRestoreStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const demo = useDemoMode();
   const demoWasActive = useRef(false);
   const [saveRequested, setSaveRequested] = useState(false);
@@ -115,6 +118,30 @@ export const HomePage: React.FC = () => {
   useCaseSync(caseState);
 
   useEffect(() => {
+    if (!routeCaseId || !auth.loaded) return;
+    if (!auth.serverReady) { setRestoreStatus('error'); return; }
+    let active = true;
+    setRestoreStatus('loading');
+    dispatch({ type: 'reset' });
+    void caseApi.getCase(routeCaseId).then((saved) => {
+      if (!active || (routePetId && saved.pet?.id !== routePetId)) throw new Error('Persisted case does not match route');
+      const restored = restorePersistedCase(saved);
+      if (!restored) throw new Error('Persisted case is invalid');
+      const checkIn = new URLSearchParams(location.search).get('checkIn') === '1';
+      dispatch({ type: 'update', patch: checkIn ? { ...restored, currentScreen: 'outcome-checkin' } : restored });
+      setSaveStatus('saved');
+      setRestoreStatus('idle');
+    }).catch(() => { if (active) setRestoreStatus('error'); });
+    return () => { active = false; };
+  }, [auth.loaded, auth.serverReady, location.search, routeCaseId, routePetId]);
+
+  useEffect(() => {
+    if (location.pathname === '/' && currentScreen === 'home' && auth.loaded && auth.signedIn && !demo.active) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [auth.loaded, auth.signedIn, currentScreen, demo.active, location.pathname, navigate]);
+
+  useEffect(() => {
     if (demo.active) {
       demoWasActive.current = true;
       dispatch({ type: 'reset' });
@@ -130,27 +157,23 @@ export const HomePage: React.FC = () => {
   }, [demo.active]);
 
   const saveCurrentPlan = useCallback(async () => {
-    if (saveInFlight.current || !auth.loaded || !auth.signedIn || !caseState.petName.trim() || !caseState.petType || !caseState.rootCause) return;
+    if (saveInFlight.current || !auth.serverReady || !caseState.petName.trim() || !caseState.petType || !caseState.rootCause) return;
     saveInFlight.current = true;
     setSaveStatus('saving');
     try {
-      let persistedCaseId = caseState.backendCaseId;
       const caseInput = {
         primaryBarrier: caseState.rootCause,
         urgency: (caseState.rootCause === 'housing' ? caseState.housing.urgency : caseState.domain.urgency) || null,
         goal: caseState.housing.goal || null,
         currentStatus: 'ACTIVE' as const,
       };
-      if (persistedCaseId) {
-        await caseApi.updateCase(persistedCaseId, caseInput);
-      } else {
-        const pet = await caseApi.createPet({ name: caseState.petName.trim(), type: caseState.petType });
-        const savedCase = await caseApi.createCase({ petId: pet.id, ...caseInput });
-        persistedCaseId = savedCase.id;
-        await caseApi.updateCase(persistedCaseId, caseInput);
-      }
-      await caseApi.recordFactors(persistedCaseId, structuredFactors({ ...caseState, backendCaseId: persistedCaseId }));
-      retainBackendCaseId(persistedCaseId);
+      const saved = await caseApi.saveAssessment({
+        ...(caseState.backendCaseId ? { caseId: caseState.backendCaseId } : {}),
+        pet: { name: caseState.petName.trim(), type: caseState.petType },
+        case: caseInput,
+        factors: structuredFactors(caseState),
+      });
+      retainBackendCaseId(saved.case.id);
       window.dispatchEvent(new Event(SAVED_PLANS_CHANGED_EVENT));
       setSaveStatus('saved');
       setSaveRequested(false);
@@ -160,11 +183,11 @@ export const HomePage: React.FC = () => {
     } finally {
       saveInFlight.current = false;
     }
-  }, [auth.loaded, auth.signedIn, caseState, retainBackendCaseId]);
+  }, [auth.serverReady, caseState, retainBackendCaseId]);
 
   useEffect(() => {
-    if (saveRequested && auth.signedIn && saveStatus !== 'saving') void saveCurrentPlan();
-  }, [auth.signedIn, saveCurrentPlan, saveRequested, saveStatus]);
+    if (saveRequested && auth.serverReady && saveStatus !== 'saving') void saveCurrentPlan();
+  }, [auth.serverReady, saveCurrentPlan, saveRequested, saveStatus]);
 
   const handleSavePlan = () => {
     if (!auth.loaded || saveInFlight.current) return;
@@ -172,7 +195,8 @@ export const HomePage: React.FC = () => {
       setSaveStatus('error');
       return;
     }
-    if (auth.signedIn) void saveCurrentPlan();
+    if (auth.serverReady) void saveCurrentPlan();
+    else if (auth.signedIn) setSaveStatus('error');
     else {
       setSaveRequested(true);
       auth.openSignIn();
@@ -226,6 +250,7 @@ export const HomePage: React.FC = () => {
     dispatch({ type: 'reset' });
     setSaveRequested(false);
     setSaveStatus('idle');
+    if (auth.signedIn) navigate('/dashboard', { replace: true });
   };
 
   const handleContinueSavedCase = async (caseId: string) => {
@@ -428,10 +453,12 @@ export const HomePage: React.FC = () => {
 
       {/* Main Content Area */}
       <main ref={mainContentRef} tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
-        {currentScreen === 'home' && (
+        {restoreStatus === 'loading' && <div className="mx-auto w-full max-w-6xl px-5 py-20" role="status"><div className="h-52 animate-pulse rounded-3xl bg-[var(--sage)]/20" /><p className="mt-4 text-center text-[var(--text-muted)]">Loading your pet’s case…</p></div>}
+        {restoreStatus === 'error' && <section className="mx-auto my-16 max-w-xl rounded-3xl border border-[var(--border-warm)] bg-white p-8 text-center" role="alert"><h1 className="font-serif text-3xl text-[var(--forest)]">We couldn’t load this pet’s case.</h1><p className="mt-3 text-[var(--text-muted)]">Return to your dashboard and try again.</p><button type="button" onClick={() => navigate('/dashboard')} className="brand-focus mt-6 rounded-full bg-[var(--forest)] px-5 py-3 font-semibold text-white">Back to dashboard</button></section>}
+        {restoreStatus === 'idle' && currentScreen === 'home' && (
           <>
             <Hero onStart={handleStartAssessment} />
-            <AuthenticatedHome active={auth.loaded && auth.signedIn} onStart={handleStartAssessment} onContinue={(caseId) => void handleContinueSavedCase(caseId)} onViewAll={() => navigate('/my-pets')} />
+            <AuthenticatedHome active={auth.loaded && auth.signedIn} onStart={handleStartAssessment} onContinue={(caseId) => void handleContinueSavedCase(caseId)} onViewAll={() => navigate('/dashboard')} />
             <ValueProposition />
             <section className="bg-[var(--cream)] py-16 sm:py-20"><div className="mx-auto grid max-w-[1380px] gap-10 px-5 sm:px-8 lg:grid-cols-[1.48fr_1fr] lg:items-start lg:gap-16 lg:px-12"><HowItWorks /><TrustDisclaimer /></div></section>
             <BrandMoment onStart={handleStartAssessment} />
@@ -521,6 +548,8 @@ export const HomePage: React.FC = () => {
             saveStatus={saveStatus}
             authLoaded={auth.loaded}
             signedIn={auth.signedIn}
+            authError={auth.status === 'AUTH_ERROR'}
+            onAuthRetry={auth.retry}
             primaryBarrier={selectedRootCause || 'housing'}
             domainAnswers={domainAnswers}
             contributingBarriers={contributingBarriers}

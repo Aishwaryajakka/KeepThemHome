@@ -1,10 +1,12 @@
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MyPetsPage from '@/pages/MyPetsPage';
 import { caseApi, SAVED_PLANS_CHANGED_EVENT } from '@/lib/case-api';
 
-let authState = { configured: true, loaded: true, signedIn: true, openSignIn: vi.fn(), signOut: vi.fn() };
+const signedInAuth = () => ({ configured: true, loaded: true, signedIn: true, serverReady: true, status: 'SIGNED_IN_READY' as const, error: null, signingOut: false, openSignIn: vi.fn(), signOut: vi.fn(), retry: vi.fn() });
+let authState = signedInAuth();
 
 vi.mock('@/components/Header', () => ({ default: () => <header>Keep Them Home</header> }));
 vi.mock('@/components/Footer', () => ({ default: () => <footer>People and pets belong together.</footer> }));
@@ -23,45 +25,56 @@ const savedLuna = {
   latestOutcome: null,
 };
 
-const renderPage = () => render(<MemoryRouter><MyPetsPage /></MemoryRouter>);
+const Location = () => <output aria-label="Current location">{useLocation().pathname}{useLocation().search}</output>;
+const renderPage = () => render(<MemoryRouter><MyPetsPage /><Location /></MemoryRouter>);
 
 describe('My Pets continuation dashboard', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    authState = { configured: true, loaded: true, signedIn: true, openSignIn: vi.fn(), signOut: vi.fn() };
+    authState = signedInAuth();
   });
 
   it('distinguishes signed-out and request-error states', async () => {
-    authState = { ...authState, signedIn: false };
+    authState = { ...authState, signedIn: false, serverReady: false, status: 'SIGNED_OUT' };
     const { unmount } = renderPage();
-    expect(screen.getByRole('heading', { name: 'Your saved plans live here.' })).toBeInTheDocument();
-    expect(screen.getByText('Sign in to return to plans you’ve saved for your pets.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Sign in to see your pets.' })).toBeInTheDocument();
+    expect(screen.getByText('Your pets, cases, and actions are securely connected to your account.')).toBeInTheDocument();
     unmount();
 
-    authState = { ...authState, signedIn: true };
+    authState = signedInAuth();
     vi.spyOn(caseApi, 'listCases').mockRejectedValue(new Error('Unauthorized'));
     renderPage();
-    expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t load your saved plans.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t load your pets right now.');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  it('does not collapse a Clerk session with a failed server check into signed out', () => {
+    const retry = vi.fn();
+    authState = { ...signedInAuth(), serverReady: false, status: 'AUTH_ERROR', error: 'We’re signed in, but couldn’t connect your account.', retry };
+    renderPage();
+    expect(screen.getByRole('alert')).toHaveTextContent('We’re signed in, but couldn’t connect your account.');
+    expect(screen.queryByRole('button', { name: 'Sign in' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
   it('shows an intentional loading state', () => {
     vi.spyOn(caseApi, 'listCases').mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByRole('status', { name: 'Loading saved plans' })).toBeInTheDocument();
+    expect(screen.getByRole('status', { name: 'Loading pets' })).toBeInTheDocument();
   });
 
   it('shows the warm empty state', async () => {
     vi.spyOn(caseApi, 'listCases').mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByRole('heading', { name: 'No saved plans yet.' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Find options for my pet' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'You haven’t started a case yet.' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Tell us what’s happening' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try Luna Demo' })).toBeInTheDocument();
   });
 
   it('refetches saved plans when a successful save invalidates My Pets', async () => {
     const listCases = vi.spyOn(caseApi, 'listCases').mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByRole('heading', { name: 'No saved plans yet.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'You haven’t started a case yet.' })).toBeInTheDocument();
 
     listCases.mockResolvedValue([savedLuna] as never);
     vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('Path unavailable'));
@@ -92,7 +105,19 @@ describe('My Pets continuation dashboard', () => {
     expect(screen.getByText('Stay in current housing with your pet')).toBeInTheDocument();
     expect(screen.getByText('Conditional')).toBeInTheDocument();
     expect(screen.getByText('2 blockers remaining')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Continue Luna’s plan/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Continue Luna’s case/ })).toBeInTheDocument();
+  });
+
+  it('shows persisted actions and continues with the persisted pet and case IDs', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([savedLuna] as never);
+    vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('Path unavailable'));
+    vi.spyOn(caseApi, 'getActions').mockResolvedValue({ actions: [{ id: 'action-1', caseId: savedLuna.case.id, pathKey: 'remain_in_current_housing', actionKey: 'contact_landlord', interventionKey: null, relatedFact: 'housingResolutionPossible', title: 'Contact landlord', description: 'Confirm the terms.', status: 'IN_PROGRESS', notPossibleReason: null, resultNote: null, outcomeKey: null, createdAt: '2026-09-10T00:00:00.000Z', updatedAt: '2026-09-10T00:00:00.000Z', completedAt: null }], events: [], recommended: [] });
+    renderPage();
+    expect(await screen.findByText('Contact landlord')).toBeInTheDocument();
+    expect(screen.getByText('in progress')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Continue Luna’s case/ }));
+    expect(screen.getByRole('status', { name: 'Current location' })).toHaveTextContent(`/pets/pet-1/cases/${savedLuna.case.id}`);
   });
 
   it('shows a reported keeping outcome without presenting the case as urgent', async () => {
@@ -101,7 +126,7 @@ describe('My Pets continuation dashboard', () => {
     renderPage();
     expect(await screen.findByText('Keeping pet')).toBeInTheDocument();
     expect(screen.getByText('Luna is staying home')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /View plan history/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /View case history/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'How are things with Luna?' })).toBeInTheDocument();
   });
 });

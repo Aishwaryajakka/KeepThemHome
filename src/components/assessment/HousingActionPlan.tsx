@@ -31,6 +31,8 @@ interface HousingActionPlanProps {
   costConstraint?: string;
   authLoaded?: boolean;
   signedIn?: boolean;
+  authError?: boolean;
+  onAuthRetry?: () => void;
   primaryBarrier?: BarrierType;
   domainAnswers?: { primarySupportPossible: TriStateAnswer; bridgeAvailable: TriStateAnswer; alternativeAvailable: TriStateAnswer; urgency: HousingTiming };
   onCheckIn?: () => void;
@@ -60,7 +62,7 @@ const factLabel = (field: string, hypothetical = false) => {
 
 export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   backendCaseId, petName, petType, situation, timing, goal, onBack, onSavePlan,
-  saveStatus = 'idle', contributingBarriers = NONE, costConstraint = '', authLoaded = true, signedIn = false,
+  saveStatus = 'idle', contributingBarriers = NONE, costConstraint = '', authLoaded = true, signedIn = false, authError = false, onAuthRetry,
   primaryBarrier = 'housing', domainAnswers = EMPTY_DOMAIN, onCheckIn,
 }) => {
   const displayName = petName.trim() || 'Luna';
@@ -170,7 +172,8 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
 
   return <div className="mx-auto w-full max-w-[1360px] px-4 py-8 sm:px-6 sm:py-12 lg:px-10 lg:py-16">
     <button type="button" onClick={onBack} className="brand-focus mb-7 inline-flex items-center gap-2 rounded text-sm font-medium text-[var(--text-muted)] hover:text-[var(--forest)]"><ArrowLeft className="h-4 w-4" aria-hidden="true" />Back to my answers</button>
-    <header className="mb-9"><p className="text-sm font-semibold text-[var(--forest)]/65">Decision workspace</p><h1 className="mt-3 font-serif text-5xl leading-tight text-[var(--forest)] sm:text-6xl">Your Keep {displayName} Home Plan</h1><p className="mt-4 max-w-3xl text-lg text-[var(--charcoal)]/75 sm:text-xl">Here are the realistic ways {displayName} could stay home, based on what you told us.</p></header>
+    <header className="mb-6"><p className="text-sm font-semibold uppercase tracking-[.14em] text-[var(--forest)]/65">Case workspace</p><h1 className="mt-3 font-serif text-5xl leading-tight text-[var(--forest)] sm:text-6xl">Your Keep {displayName} Home Plan</h1><p className="mt-4 max-w-3xl font-serif text-2xl leading-snug text-[var(--charcoal)] sm:text-3xl">What would have to change for {displayName} to stay home?</p></header>
+    {onSavePlan && <section className="sticky top-[68px] z-20 mb-9 flex flex-col gap-3 rounded-2xl border border-[var(--sage)] bg-[var(--cream)]/95 p-4 shadow-md backdrop-blur sm:flex-row sm:items-center sm:justify-between" aria-label="Case save status" aria-live="polite"><div><p className="font-bold text-[var(--forest)]">{saveStatus === 'saved' ? 'Saved to your account ✓' : `${displayName} · Temporary case — not saved`}</p>{authError && <p className="mt-1 text-sm text-[var(--status-blocked-text)]">We’re having trouble connecting your account.</p>}</div>{saveStatus !== 'saved' && <Button type="button" onClick={authError ? onAuthRetry : onSavePlan} disabled={saveStatus === 'saving' || (!authLoaded && !authError)} className="brand-focus min-h-11 bg-[var(--forest)] text-white">{authError ? 'Retry account connection' : saveStatus === 'saving' ? `Saving ${displayName}…` : signedIn ? `Save ${displayName}` : `Sign in to save ${displayName}`}</Button>}</section>}
 
     <section className="mb-10 grid gap-6 rounded-2xl border border-[var(--sage)]/40 bg-white/75 p-5 sm:grid-cols-[180px_1fr] sm:p-7" aria-label={`${displayName} case context`}>
       <div><p className="font-serif text-3xl text-[var(--forest)]">{displayName}</p>{petType && <p className="mt-1 text-base capitalize text-[var(--text-muted)]">{petType}</p>}</div>

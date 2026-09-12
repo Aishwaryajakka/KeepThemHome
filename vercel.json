@@ -6,7 +6,15 @@
       "destination": "/api/router?path=:path"
     },
     {
-      "source": "/((?!api/|src/|@vite/|@react-refresh|@fs/|@id/|node_modules/|assets/|images/|favicon.ico).*)",
+      "source": "/dashboard",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/my-pets",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/pets/:petId/cases/:caseId",
       "destination": "/index.html"
     }
   ]

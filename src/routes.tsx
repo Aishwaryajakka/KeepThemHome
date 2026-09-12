@@ -1,5 +1,6 @@
 import HomePage from './pages/HomePage';
 import { lazy, Suspense, type ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
 
 const MyPetsPage = lazy(() => import('./pages/MyPetsPage'));
 
@@ -19,5 +20,7 @@ export const routes: RouteConfig[] = [
     element: <HomePage />,
     public: true,
   },
-  { name: 'My Pets', path: '/my-pets', element: <Suspense fallback={<div className="min-h-screen bg-[var(--cream)] p-8" role="status" aria-label="Loading My Pets" />}><MyPetsPage /></Suspense> },
+  { name: 'Dashboard', path: '/dashboard', element: <Suspense fallback={<div className="min-h-screen bg-[var(--cream)] p-8" role="status" aria-label="Loading dashboard" />}><MyPetsPage /></Suspense> },
+  { name: 'My Pets', path: '/my-pets', element: <Navigate to="/dashboard" replace /> },
+  { name: 'Case workspace', path: '/pets/:petId/cases/:caseId', element: <HomePage /> },
 ];

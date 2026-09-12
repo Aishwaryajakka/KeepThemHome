@@ -7,7 +7,7 @@ import Header from '@/components/Header';
 
 const signOut = vi.fn();
 vi.mock('@/auth/AuthProvider', () => ({
-  useAppAuth: () => ({ configured: true, loaded: true, signedIn: true, openSignIn: vi.fn(), signOut }),
+  useAppAuth: () => ({ configured: true, loaded: true, signedIn: true, serverReady: true, status: 'SIGNED_IN_READY', error: null, signingOut: false, openSignIn: vi.fn(), signOut, retry: vi.fn() }),
 }));
 vi.mock('@/demo/DemoModeProvider', () => ({
   useDemoMode: () => ({ active: false, enable: vi.fn(), reset: vi.fn() }),
@@ -20,9 +20,9 @@ vi.mock('@clerk/react', () => {
 });
 
 describe('product header account and exit behavior', () => {
-  it('keeps My Pets in the account menu and removes primary Sign out', () => {
+  it('keeps Dashboard in the account menu and removes primary Sign out', () => {
     render(<MemoryRouter><Header variant="product" onCtaClick={vi.fn()} petName="Luna" petType="dog" factors={['housing']} /></MemoryRouter>);
-    expect(screen.getByTestId('account-menu')).toContainElement(screen.getByRole('link', { name: 'My Pets' }));
+    expect(screen.getByTestId('account-menu')).toContainElement(screen.getAllByRole('link', { name: 'Dashboard' }).find((link) => link.closest('[data-testid="account-menu"]'))!);
     expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument();
   });
 
@@ -30,7 +30,7 @@ describe('product header account and exit behavior', () => {
     const onExit = vi.fn();
     const user = userEvent.setup();
     render(<MemoryRouter><Header variant="product" onCtaClick={onExit} /></MemoryRouter>);
-    await user.click(screen.getByRole('button', { name: 'Exit' }));
+    await user.click(screen.getByRole('button', { name: 'Back to Dashboard' }));
     expect(onExit).toHaveBeenCalledOnce();
     expect(signOut).not.toHaveBeenCalled();
   });

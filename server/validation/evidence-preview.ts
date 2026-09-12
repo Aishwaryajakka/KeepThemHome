@@ -1,9 +1,8 @@
 import { z } from 'zod';
 import { goalSchema, primaryBarrierSchema, urgencySchema } from './case.js';
-import { pathKeySchema } from './counterfactual.js';
 
 export const evidencePreviewSchema = z.object({
-  pathKey: pathKeySchema,
+  pathKey: z.string().trim().min(1).max(100).regex(/^[a-z0-9_]+$/),
   primaryBarrier: primaryBarrierSchema,
   situation: z.string().max(200).nullable(),
   urgency: urgencySchema.nullable(),

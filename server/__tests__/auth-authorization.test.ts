@@ -11,18 +11,39 @@ import { createPathsHandler } from '../api-handlers/cases/[id]/paths.js';
 
 const caseId = '550e8400-e29b-41d4-a716-446655440000';
 const petId = '650e8400-e29b-41d4-a716-446655440000';
-const userA = { id: '750e8400-e29b-41d4-a716-446655440000', email: 'a@example.test' };
+const userA = { id: '750e8400-e29b-41d4-a716-446655440000', authSubject: 'user_a', email: 'a@example.test', createdAt: new Date('2026-09-12T00:00:00.000Z') };
 const responseDouble = () => {
   const json = vi.fn();
   const response = { setHeader: vi.fn(), status: vi.fn(() => response), json } as unknown as VercelResponse;
   return { response, json };
 };
-const request = (method: string, body: unknown = undefined, id = caseId) => ({ method, query: { id }, body }) as unknown as VercelRequest;
+const request = (method: string, body: unknown = undefined, id = caseId) => ({
+  method,
+  query: { id },
+  body,
+  headers: { authorization: 'Bearer test-token' },
+}) as unknown as VercelRequest;
 const owned = vi.fn(async () => ({ status: 'ok' as const, user: userA, caseRecord: { id: caseId } } as never));
 const foreign = vi.fn(async () => ({ status: 'not_found' as const }));
 const signedOut = vi.fn(async () => null);
 
 describe('authenticated application boundary', () => {
+  it('returns 401 before user resolution when the Authorization header is missing', async () => {
+    const resolver = vi.fn();
+    const { response } = responseDouble();
+    await createMeHandler(resolver)({ method: 'GET', query: {}, headers: {} } as unknown as VercelRequest, response);
+    expect(response.status).toHaveBeenCalledWith(401);
+    expect(resolver).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 before user resolution when the header is not a Bearer token', async () => {
+    const resolver = vi.fn();
+    const { response } = responseDouble();
+    await createMeHandler(resolver)({ method: 'GET', query: {}, headers: { authorization: 'Basic credentials' } } as unknown as VercelRequest, response);
+    expect(response.status).toHaveBeenCalledWith(401);
+    expect(resolver).not.toHaveBeenCalled();
+  });
+
   it('returns 401 for a signed-out protected request', async () => {
     const { response } = responseDouble();
     await createMeHandler(signedOut)(request('GET'), response);
@@ -32,7 +53,14 @@ describe('authenticated application boundary', () => {
   it('returns only normalized internal identity, never Clerk authority fields', async () => {
     const { response, json } = responseDouble();
     await createMeHandler(vi.fn(async () => userA as never))(request('GET'), response);
-    expect(json).toHaveBeenCalledWith({ id: userA.id, email: userA.email });
+    expect(json).toHaveBeenCalledWith({ user: { id: userA.id, clerkUserId: userA.authSubject, email: userA.email, createdAt: userA.createdAt } });
+  });
+
+  it('returns a controlled 500 when authenticated user linkage fails', async () => {
+    const { response, json } = responseDouble();
+    await createMeHandler(vi.fn(async () => { throw new Error('database unavailable'); }))(request('GET'), response);
+    expect(response.status).toHaveBeenCalledWith(500);
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ error: 'account_linkage_failed', requestId: expect.any(String) }));
   });
 
   it('scopes pet creation and listing to the authenticated internal user', async () => {

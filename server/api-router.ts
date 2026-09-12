@@ -18,6 +18,8 @@ import actionsHandler from './api-handlers/cases/[id]/actions.js';
 import actionHandler from './api-handlers/cases/[id]/actions/[actionId].js';
 import actionOutcomeHandler from './api-handlers/cases/[id]/actions/[actionId]/outcome.js';
 import similarHandler from './api-handlers/cases/[id]/similar.js';
+import saveCaseHandler from './api-handlers/cases/save.js';
+import { authDiagnosticLog, getAuthRequestId } from './auth/diagnostics.js';
 
 export type ApiHandler = (request: VercelRequest, response: VercelResponse) => unknown;
 
@@ -41,6 +43,7 @@ export interface ApiHandlers {
   action?: ApiHandler;
   actionOutcome?: ApiHandler;
   similar?: ApiHandler;
+  saveCase?: ApiHandler;
 }
 
 const defaultHandlers: ApiHandlers = {
@@ -63,6 +66,7 @@ const defaultHandlers: ApiHandlers = {
   action: actionHandler,
   actionOutcome: actionOutcomeHandler,
   similar: similarHandler,
+  saveCase: saveCaseHandler,
 };
 
 const routePath = (request: VercelRequest) => {
@@ -85,9 +89,14 @@ export const createApiRouter = (handlers: ApiHandlers = defaultHandlers) => asyn
   const { path: _internalRewritePath, ...publicQuery } = request.query;
   request.query = publicQuery;
 
-  if (path === 'me') return handlers.me(request, response);
+  if (path === 'me') {
+    const requestId = getAuthRequestId(request);
+    authDiagnosticLog(requestId, `router_authorization_header_present=${Boolean(request.headers?.authorization)}`);
+    return handlers.me(request, response);
+  }
   if (path === 'pets') return handlers.pets(request, response);
   if (path === 'cases') return handlers.cases(request, response);
+  if (path === 'cases/save' && handlers.saveCase) return handlers.saveCase(request, response);
   if (path === 'intake/extract') return handlers.intake(request, response);
   if (path === 'resources') return handlers.resources(request, response);
   if (path === 'evidence/preview') return handlers.evidencePreview(request, response);

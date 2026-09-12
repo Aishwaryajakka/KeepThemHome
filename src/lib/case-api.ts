@@ -46,6 +46,7 @@ export interface PersistedFactor extends FactorInput { id: string; caseId: strin
 export interface PersistedOutcome { id: string; caseId: string; status: ApiOutcomeStatus; unresolvedBarrier: string | null; notes: string | null; helpfulFactors?: HelpfulFactor[]; createdAt: string; }
 export interface SavedCaseSummary { case: CaseResponse; pet: PetResponse; factors: PersistedFactor[]; latestOutcome: PersistedOutcome | null; activeActionCount?: number; }
 export interface SavedCaseDetail { case: CaseResponse; pet: PetResponse | null; factors: PersistedFactor[]; outcomes: PersistedOutcome[]; }
+export interface SavedAssessment { case: CaseResponse; pet: PetResponse; factors: PersistedFactor[]; }
 
 export interface SimilarCase {
   id: string;
@@ -242,8 +243,12 @@ export const configureAuthTokenProvider = (provider: (() => Promise<string | nul
   authTokenProvider = provider;
 };
 
-const requestJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
+const requestJson = async <T>(url: string, init?: RequestInit, authDiagnostic = false): Promise<T> => {
   const token = await authTokenProvider?.();
+  if (authDiagnostic) console.info('[auth] /api/me request', {
+    token_present: Boolean(token),
+    authorization_attached: Boolean(token),
+  });
   const response = await fetch(url, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...init?.headers },
@@ -253,6 +258,15 @@ const requestJson = async <T>(url: string, init?: RequestInit): Promise<T> => {
 };
 
 export const caseApi = {
+  getMe: async () => requestJson<{ user: { id: string; clerkUserId: string; email: string | null; createdAt: string } }>('/api/me', undefined, true),
+
+  saveAssessment: async (input: {
+    caseId?: string;
+    pet: { name: string; type: ApiPetType };
+    case: Omit<CreateCaseInput, 'petId'>;
+    factors: FactorInput[];
+  }) => requestJson<SavedAssessment>('/api/cases/save', { method: 'POST', body: JSON.stringify(input) }),
+
   createPet: async (input: { name: string; type: ApiPetType }) =>
     (await requestJson<{ pet: PetResponse }>('/api/pets', { method: 'POST', body: JSON.stringify(input) })).pet,
 
