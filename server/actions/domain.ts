@@ -1,4 +1,4 @@
-import type { ConstraintKey } from '../retention-paths/domain';
+import type { ConstraintKey } from '../retention-paths/domain.js';
 
 export const actionStatuses = ['PLANNED', 'IN_PROGRESS', 'COMPLETED', 'NOT_POSSIBLE'] as const;
 export const notPossibleReasons = ['COST', 'NO_AVAILABILITY', 'NOT_ELIGIBLE', 'NO_RESPONSE', 'TIME', 'TRANSPORTATION', 'SAFETY', 'HOUSING', 'HOUSEHOLD', 'OTHER'] as const;

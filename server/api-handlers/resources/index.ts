@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, safeServerError } from '../../http';
-import { listVerifiedResources } from '../../services/resource-service';
-import { resourceQuerySchema } from '../../validation/resource';
+import { methodNotAllowed, safeServerError } from '../../http.js';
+import { listVerifiedResources } from '../../services/resource-service.js';
+import { resourceQuerySchema } from '../../validation/resource.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'GET') return methodNotAllowed(response, ['GET']);

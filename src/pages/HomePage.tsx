@@ -139,7 +139,7 @@ export const HomePage: React.FC = () => {
         primaryBarrier: caseState.rootCause,
         urgency: (caseState.rootCause === 'housing' ? caseState.housing.urgency : caseState.domain.urgency) || null,
         goal: caseState.housing.goal || null,
-        currentStatus: 'active' as const,
+        currentStatus: 'ACTIVE' as const,
       };
       if (persistedCaseId) {
         await caseApi.updateCase(persistedCaseId, caseInput);
@@ -525,6 +525,7 @@ export const HomePage: React.FC = () => {
             domainAnswers={domainAnswers}
             contributingBarriers={contributingBarriers}
             costConstraint={caseState.costConstraint}
+            onCheckIn={() => setCurrentScreen('outcome-checkin')}
           />
         )}
 
@@ -607,6 +608,8 @@ export const HomePage: React.FC = () => {
         {currentScreen === 'outcome-keeping' && (
           <OutcomeKeeping
             petName={petName}
+            onReportHelpful={(factors) => { if (caseState.backendCaseId) void caseApi.recordOutcome(caseState.backendCaseId, 'KEEPING_PET', factors); }}
+            onThingsChanged={() => { updateCase('outcome', ''); setCurrentScreen('housing-plan'); }}
             onStartAnotherCase={handleStartAnotherCase}
             onReviewPlan={handleBackToHousingPlan}
           />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { rankHousingInterventions } from '../interventions/engine';
+import { rankHousingInterventions } from '../interventions/engine.js';
 
 const rank = (situation: string, goal = 'Either could work', urgency = 'Within a month') =>
   rankHousingInterventions({ primaryBarrier: 'housing', situation, goal, urgency });

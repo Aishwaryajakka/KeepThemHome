@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm';
 import type { VercelRequest } from '@vercel/node';
-import { getDatabase } from '../db';
-import { users } from '../db/schema';
-import { getAuthenticatedIdentity, type IdentityResolver } from '../auth/clerk';
+import { getDatabase } from '../db.js';
+import { users } from '../db/schema.js';
+import { getAuthenticatedIdentity, type IdentityResolver } from '../auth/clerk.js';
 
 export const getOrCreateAppUser = async (
   identity: { subject: string; email?: string },

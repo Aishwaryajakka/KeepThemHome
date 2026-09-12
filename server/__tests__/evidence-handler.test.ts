@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { describe, expect, it, vi } from 'vitest';
-import { createEvidenceHandler } from '../api-handlers/cases/[id]/paths/[pathKey]/evidence';
-import { getCasePathEvidence } from '../services/evidence-service';
-import type { NormalizedHousingCase, PathEvaluation } from '../retention-paths/domain';
+import { createEvidenceHandler } from '../api-handlers/cases/[id]/paths/[pathKey]/evidence.js';
+import { getCasePathEvidence } from '../services/evidence-service.js';
+import type { NormalizedHousingCase, PathEvaluation } from '../retention-paths/domain.js';
 
 const caseId = '550e8400-e29b-41d4-a716-446655440000';
 const owned = vi.fn(async () => ({ status: 'ok' as const, user: { id: 'user-a' }, caseRecord: { id: caseId } } as never));

@@ -90,7 +90,7 @@ describe('Keep Them Home demo flows', () => {
     expect(screen.getByRole('button', { name: 'Demo Mode' })).toBeInTheDocument();
     expect(screen.queryByText(/Usually takes/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Elena/i)).not.toBeInTheDocument();
-    expect(screen.getByAltText('A golden retriever and tabby cat resting together')).toHaveAttribute('src', '/images/pets-resting-hero.png');
+    expect(screen.getByAltText('A golden retriever and tabby cat resting together')).toHaveAttribute('src', '/images/pets-resting-hero.jpg');
     expect(screen.getByText(`© ${new Date().getFullYear()} Keep Them Home`)).toBeInTheDocument();
     expect(screen.queryByText(/AI understands/i)).not.toBeInTheDocument();
   });
@@ -115,6 +115,14 @@ describe('Keep Them Home demo flows', () => {
     await user.click(screen.getByRole('button', { name: 'See what Keep Them Home understands' }));
     expect(screen.getByRole('textbox', { name: 'Tell us what’s happening' })).toHaveValue('My landlord is threatening eviction because Luna barks while I’m at work. I have a week and can’t afford a trainer.');
     expect(screen.queryByText(/Landlord pressure · barking/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Reset demo' }));
+    expect(await screen.findByRole('heading', { name: 'Before you give them up, let’s see what’s possible.' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Demo scenario')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Demo Mode' }));
+    expect(await screen.findByRole('heading', { name: 'Meet Luna' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'See what Keep Them Home understands' }));
+    expect(screen.getByRole('textbox', { name: 'Tell us what’s happening' })).toHaveValue('My landlord is threatening eviction because Luna barks while I’m at work. I have a week and can’t afford a trainer.');
     await user.click(screen.getByRole('button', { name: 'Reset demo' }));
     expect(await screen.findByRole('heading', { name: 'Before you give them up, let’s see what’s possible.' })).toBeInTheDocument();
     expect(screen.queryByLabelText('Demo scenario')).not.toBeInTheDocument();

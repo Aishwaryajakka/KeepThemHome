@@ -1,5 +1,5 @@
-import type { AssessmentScreen } from '../../src/types/assessment';
-import type { IntakeExtraction } from '../validation/intake';
+import type { AssessmentScreen } from '../../src/types/assessment.js';
+import type { IntakeExtraction } from '../validation/intake.js';
 
 export interface IntakeFollowUp {
   field: string;

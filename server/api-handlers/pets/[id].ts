@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, parseBody, safeServerError } from '../../http';
-import { resolveAppUser, type AppUserResolver } from '../../services/auth-service';
-import { getOwnedPet } from '../../services/ownership-service';
-import { updateOwnedPet } from '../../services/pet-service';
-import { uuidSchema } from '../../validation/case';
-import { updatePetSchema } from '../../validation/pet';
+import { methodNotAllowed, parseBody, safeServerError } from '../../http.js';
+import { resolveAppUser, type AppUserResolver } from '../../services/auth-service.js';
+import { getOwnedPet } from '../../services/ownership-service.js';
+import { updateOwnedPet } from '../../services/pet-service.js';
+import { uuidSchema } from '../../validation/case.js';
+import { updatePetSchema } from '../../validation/pet.js';
 
 export const createPetHandler = (resolveUser: AppUserResolver = resolveAppUser, services = { getOwnedPet, updateOwnedPet }) => async (request: VercelRequest, response: VercelResponse) => {
   if (!['GET', 'PATCH'].includes(request.method ?? '')) return methodNotAllowed(response, ['GET', 'PATCH']);

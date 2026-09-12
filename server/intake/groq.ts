@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { intakeSystemPrompt } from './prompt';
-import { intakeExtractionSchema, intakeJsonSchema, type IntakeExtraction } from '../validation/intake';
+import { intakeSystemPrompt } from './prompt.js';
+import { intakeExtractionSchema, intakeJsonSchema, type IntakeExtraction } from '../validation/intake.js';
 
 export class ProviderUnavailableError extends Error {}
 export class ExtractionFailedError extends Error {}

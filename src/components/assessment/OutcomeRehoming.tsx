@@ -44,10 +44,10 @@ export const OutcomeRehoming: React.FC<OutcomeRehomingProps> = ({
       {/* Main Heading */}
       <div className="mb-8 sm:mb-10">
         <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#2E5440] font-normal leading-tight tracking-tight mb-3 sm:mb-4 text-balance">
-          Sometimes keeping them home isn’t possible.
+          Sometimes keeping a pet at home still isn’t possible.
         </h1>
         <p className="font-sans text-base sm:text-lg text-[#2D2D2D]/85 leading-relaxed mb-4 text-pretty">
-          Responsible rehoming can still protect {displayName}’s wellbeing. We’ll help you think through safe next steps without judgment.
+          We can help you think through a safer next step for {displayName} without judgment.
         </p>
         <p className="font-sans text-sm sm:text-base text-[#2D2D2D]/70 leading-relaxed italic">
           Choosing to explore responsible rehoming does not erase the effort you’ve already made.

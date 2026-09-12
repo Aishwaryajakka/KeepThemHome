@@ -1,5 +1,5 @@
-import type { NormalizedHousingCase } from '../retention-paths/domain';
-import type { SupportedChange, SupportedChangeCode } from './domain';
+import type { NormalizedHousingCase } from '../retention-paths/domain.js';
+import type { SupportedChange, SupportedChangeCode } from './domain.js';
 
 type ChangeDefinition = {
   code: SupportedChangeCode;
@@ -16,7 +16,7 @@ export class UnsupportedCounterfactualError extends Error {}
 const domainChange = (
   domain: string,
   code: SupportedChangeCode,
-  field: SupportedChange['field'],
+  field: Exclude<SupportedChange['field'], 'goal'>,
   burden: number,
   label: string,
 ): ChangeDefinition => ({

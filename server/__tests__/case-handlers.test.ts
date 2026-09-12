@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { describe, expect, it, vi } from 'vitest';
-import { createCaseHandler } from '../api-handlers/cases/[id]';
-import { createCasesHandler } from '../api-handlers/cases';
+import { createCaseHandler } from '../api-handlers/cases/[id].js';
+import { createCasesHandler } from '../api-handlers/cases.js';
 
 const responseDouble = () => {
   const json = vi.fn();

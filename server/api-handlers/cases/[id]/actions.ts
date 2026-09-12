@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { actionCatalog } from '../../../actions/catalog';
-import { methodNotAllowed, parseBody, safeServerError } from '../../../http';
-import { addCaseAction, listCaseActions, listCaseEvents } from '../../../services/action-service';
-import { resolveOwnedCase, type OwnedCaseResolver } from '../../../services/ownership-service';
-import { createActionSchema } from '../../../validation/action';
-import { uuidSchema } from '../../../validation/case';
+import { actionCatalog } from '../../../actions/catalog.js';
+import { methodNotAllowed, parseBody, safeServerError } from '../../../http.js';
+import { addCaseAction, listCaseActions, listCaseEvents } from '../../../services/action-service.js';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../services/ownership-service.js';
+import { createActionSchema } from '../../../validation/action.js';
+import { uuidSchema } from '../../../validation/case.js';
 
 export const createActionsHandler = (authorize: OwnedCaseResolver = resolveOwnedCase, services = { addCaseAction, listCaseActions, listCaseEvents }) => async (request: VercelRequest, response: VercelResponse) => {
   const id = uuidSchema.safeParse(request.query.id); if (!id.success) return response.status(400).json({ error: 'Invalid case ID' });

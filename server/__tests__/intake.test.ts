@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { extractIntake, ExtractionFailedError, ProviderUnavailableError } from '../intake/groq';
-import { selectIntakeFollowUps } from '../intake/follow-ups';
-import { intakeExtractionSchema, intakeRequestSchema, type IntakeExtraction } from '../validation/intake';
+import { extractIntake, ExtractionFailedError, ProviderUnavailableError } from '../intake/groq.js';
+import { selectIntakeFollowUps } from '../intake/follow-ups.js';
+import { intakeExtractionSchema, intakeRequestSchema, type IntakeExtraction } from '../validation/intake.js';
 
 export const lunaExtraction: IntakeExtraction = {
   petName: 'Luna',

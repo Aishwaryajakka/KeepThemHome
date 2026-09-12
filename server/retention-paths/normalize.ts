@@ -1,5 +1,5 @@
-import type { CaseFactorRecord, CaseRecord } from '../db/schema';
-import type { ConstraintKey, NormalizedHousingCase, RequirementState } from './domain';
+import type { CaseFactorRecord, CaseRecord } from '../db/schema.js';
+import type { ConstraintKey, NormalizedHousingCase, RequirementState } from './domain.js';
 
 const explicitBoolean = (value: string | null | undefined): RequirementState => {
   if (!value) return 'unknown';

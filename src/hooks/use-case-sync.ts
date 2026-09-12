@@ -9,9 +9,9 @@ const contributingFactorType = (barrier: BarrierType) => barrier === 'behavior'
   : `contributing_${barrier}`;
 
 const outcomeStatus = (outcome: AssessmentCaseState['outcome']): ApiOutcomeStatus | undefined => {
-  if (outcome === 'keeping') return 'keeping';
-  if (outcome === 'stillTrying') return 'still_trying';
-  if (outcome === 'rehomingHelp') return 'rehoming_help';
+  if (outcome === 'keeping') return 'KEEPING_PET';
+  if (outcome === 'stillTrying') return 'STILL_TRYING';
+  if (outcome === 'rehomingHelp') return 'REHOMING_SUPPORT_NEEDED';
 };
 
 export const structuredFactors = (caseState: AssessmentCaseState): FactorInput[] => {
@@ -82,7 +82,8 @@ export const useCaseSync = (
 
   useEffect(() => {
     if (!caseState.backendCaseId) return;
-    const status = (outcomeStatus(caseState.outcome) ?? 'active') as ApiCaseStatus;
+    const outcome = outcomeStatus(caseState.outcome);
+    const status = (outcome === 'KEEPING_PET' ? 'KEEPING_PET' : outcome === 'REHOMING_SUPPORT_NEEDED' ? 'REHOMING_SUPPORT' : 'ACTIVE') as ApiCaseStatus;
     const payload = {
       primaryBarrier: caseState.rootCause || null,
       urgency: (caseState.rootCause === 'housing' ? caseState.housing.urgency : caseState.domain.urgency) || null,

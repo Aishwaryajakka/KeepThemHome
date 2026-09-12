@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { evidenceCatalog, evidenceSourceSchema } from '../evidence/catalog';
-import { interventionClaims, selectEvidenceForPath } from '../evidence/select';
-import type { NormalizedHousingCase, PathEvaluation, PathStatus } from '../retention-paths/domain';
+import { evidenceCatalog, evidenceSourceSchema } from '../evidence/catalog.js';
+import { interventionClaims, selectEvidenceForPath } from '../evidence/select.js';
+import type { NormalizedHousingCase, PathEvaluation, PathStatus } from '../retention-paths/domain.js';
 
 const caseId = '550e8400-e29b-41d4-a716-446655440000';
 const luna: NormalizedHousingCase = {

@@ -89,6 +89,7 @@
     "@testing-library/user-event": "^14.6.4",
     "@types/bmapgl": "^0.0.7",
     "@types/lodash": "^4.17.24",
+    "@types/node": "^24.10.1",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@typescript/native-preview": "7.0.0-dev.20260514.1",

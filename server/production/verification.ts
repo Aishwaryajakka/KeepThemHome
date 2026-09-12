@@ -1,12 +1,13 @@
-import { applySupportedChanges, exploreSmallestUnlock } from '../counterfactual/engine';
-import { buildLunaSolverFacts } from '../demo/scenarios';
-import { selectEvidenceForPath } from '../evidence/select';
-import { rankHousingInterventions } from '../interventions/engine';
-import { solveRetentionPaths } from '../retention-paths/solver';
+import { applySupportedChanges, exploreSmallestUnlock } from '../counterfactual/engine.js';
+import { buildLunaSolverFacts } from '../demo/scenarios.js';
+import { selectEvidenceForPath } from '../evidence/select.js';
+import { rankHousingInterventions } from '../interventions/engine.js';
+import { solveRetentionPaths } from '../retention-paths/solver.js';
 
 export const expectedProductionTables = [
   'users', 'pets', 'cases', 'case_factors', 'outcomes', 'resources',
-  'interventions', 'intervention_resources', 'recommendations',
+  'interventions', 'intervention_resources', 'recommendations', 'case_actions',
+  'case_events', 'case_similarity_profiles',
 ] as const;
 
 export const verifyDeterministicCore = () => {

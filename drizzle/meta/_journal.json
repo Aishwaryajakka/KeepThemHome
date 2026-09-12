@@ -29,6 +29,20 @@
       "when": 1789189188632,
       "tag": "0003_left_wendigo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789190521439,
+      "tag": "0004_cuddly_ultragirl",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789192136088,
+      "tag": "0005_polite_zaran",
+      "breakpoints": true
     }
   ]
 }

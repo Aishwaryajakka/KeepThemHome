@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, parseBody, safeServerError } from '../../http';
-import { selectEvidenceForPath } from '../../evidence/select';
-import { solveRetentionPaths } from '../../retention-paths/solver';
-import type { NormalizedHousingCase } from '../../retention-paths/domain';
-import { evidencePreviewSchema } from '../../validation/evidence-preview';
+import { methodNotAllowed, parseBody, safeServerError } from '../../http.js';
+import { selectEvidenceForPath } from '../../evidence/select.js';
+import { solveRetentionPaths } from '../../retention-paths/solver.js';
+import type { NormalizedHousingCase } from '../../retention-paths/domain.js';
+import { evidencePreviewSchema } from '../../validation/evidence-preview.js';
 
 export default async function handler(request: VercelRequest, response: VercelResponse) {
   if (request.method !== 'POST') return methodNotAllowed(response, ['POST']);

@@ -1,6 +1,6 @@
-import { evidenceCatalog, evidenceClaims } from './catalog';
-import type { EvidenceClaimCode, PathEvidenceResponse } from './domain';
-import type { NormalizedHousingCase, PathEvaluation } from '../retention-paths/domain';
+import { evidenceCatalog, evidenceClaims } from './catalog.js';
+import type { EvidenceClaimCode, PathEvidenceResponse } from './domain.js';
+import type { NormalizedHousingCase, PathEvaluation } from '../retention-paths/domain.js';
 
 const interventionClaims: Record<string, EvidenceClaimCode[]> = {
   clarify_housing_restriction: ['LANDLORD_HOUSING_BARRIER', 'HOUSING_SURRENDER_DRIVER'],

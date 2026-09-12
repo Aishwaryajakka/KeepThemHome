@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, parseBody, safeServerError } from '../../../http';
-import { UnsupportedCounterfactualError } from '../../../counterfactual/catalog';
-import { generateRetentionPaths } from '../../../services/path-service';
-import { uuidSchema } from '../../../validation/case';
-import { hypotheticalChangesSchema } from '../../../validation/counterfactual';
-import { resolveOwnedCase, type OwnedCaseResolver } from '../../../services/ownership-service';
+import { methodNotAllowed, parseBody, safeServerError } from '../../../http.js';
+import { UnsupportedCounterfactualError } from '../../../counterfactual/catalog.js';
+import { generateRetentionPaths } from '../../../services/path-service.js';
+import { uuidSchema } from '../../../validation/case.js';
+import { hypotheticalChangesSchema } from '../../../validation/counterfactual.js';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../services/ownership-service.js';
 
 type PathGenerator = typeof generateRetentionPaths;
 

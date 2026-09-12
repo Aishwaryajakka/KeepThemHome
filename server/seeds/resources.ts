@@ -1,4 +1,4 @@
-import { seedVerifiedCatalog } from '../services/seed-service';
+import { seedVerifiedCatalog } from '../services/seed-service.js';
 
 const result = await seedVerifiedCatalog();
 if (result.expectedResources !== 8 || result.visibleResources !== 8) {

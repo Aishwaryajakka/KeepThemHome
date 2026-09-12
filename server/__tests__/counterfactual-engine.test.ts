@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { materializeSupportedChanges, relevantSupportedChanges, supportedChangeCatalog } from '../counterfactual/catalog';
+import { materializeSupportedChanges, relevantSupportedChanges, supportedChangeCatalog } from '../counterfactual/catalog.js';
 import {
   applySupportedChanges,
   exploreSmallestUnlock,
   generateCombinations,
   MAX_UNLOCK_CHANGES,
   orderUnlockCandidates,
-} from '../counterfactual/engine';
-import type { SupportedChange, UnlockCandidate } from '../counterfactual/domain';
-import { normalizeHousingCase } from '../retention-paths/normalize';
+} from '../counterfactual/engine.js';
+import type { SupportedChange, UnlockCandidate } from '../counterfactual/domain.js';
+import { normalizeHousingCase } from '../retention-paths/normalize.js';
 
 const luna = normalizeHousingCase(
   { primaryBarrier: 'housing', urgency: 'This week', goal: 'Stay where I am' },

@@ -1,7 +1,7 @@
 import { and, asc, eq } from 'drizzle-orm';
-import { getDatabase } from '../db';
-import { pets } from '../db/schema';
-import type { CreatePetInput, UpdatePetInput } from '../validation/pet';
+import { getDatabase } from '../db.js';
+import { pets } from '../db/schema.js';
+import type { CreatePetInput, UpdatePetInput } from '../validation/pet.js';
 
 export const createOwnedPet = async (userId: string, input: CreatePetInput) => {
   const db = getDatabase();

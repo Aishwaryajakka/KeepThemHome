@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, safeServerError } from '../../../http';
-import { generateCasePlan } from '../../../services/plan-service';
-import { uuidSchema } from '../../../validation/case';
-import { resolveOwnedCase, type OwnedCaseResolver } from '../../../services/ownership-service';
+import { methodNotAllowed, safeServerError } from '../../../http.js';
+import { generateCasePlan } from '../../../services/plan-service.js';
+import { uuidSchema } from '../../../validation/case.js';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../services/ownership-service.js';
 
 export const createPlanHandler = (generatePlan = generateCasePlan, authorize: OwnedCaseResolver = resolveOwnedCase) => async (request: VercelRequest, response: VercelResponse) => {
   if (request.method !== 'POST') return methodNotAllowed(response, ['POST']);

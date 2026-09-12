@@ -42,7 +42,7 @@ export const restorePersistedCase = (saved: SavedCaseDetail): AssessmentCaseStat
       alternativeAvailable: value('alternative_available'),
       urgency: saved.case.urgency ?? value('urgency'),
     },
-    outcome: latestOutcome === 'still_trying' ? 'stillTrying' : latestOutcome === 'rehoming_help' ? 'rehomingHelp' : latestOutcome === 'keeping' ? 'keeping' : '',
+    outcome: latestOutcome === 'STILL_TRYING' ? 'stillTrying' : latestOutcome === 'REHOMING_SUPPORT_NEEDED' ? 'rehomingHelp' : latestOutcome === 'KEEPING_PET' ? 'keeping' : '',
     currentScreen: rootCause ? 'housing-plan' : 'root-cause',
   };
   return isAssessmentCaseState(candidate) ? candidate : undefined;

@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, parseBody } from '../../http';
-import { ExtractionFailedError, extractIntake, ProviderUnavailableError } from '../../intake/groq';
-import { selectIntakeFollowUps } from '../../intake/follow-ups';
-import { intakeRequestSchema } from '../../validation/intake';
+import { methodNotAllowed, parseBody } from '../../http.js';
+import { ExtractionFailedError, extractIntake, ProviderUnavailableError } from '../../intake/groq.js';
+import { selectIntakeFollowUps } from '../../intake/follow-ups.js';
+import { intakeRequestSchema } from '../../validation/intake.js';
 
 export const createIntakeHandler = (extract = extractIntake) => async (
   request: VercelRequest,

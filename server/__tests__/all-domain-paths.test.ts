@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { solveRetentionPaths } from '../retention-paths/solver';
-import { exploreSmallestUnlock } from '../counterfactual/engine';
-import type { NormalizedHousingCase } from '../retention-paths/domain';
+import { solveRetentionPaths } from '../retention-paths/solver.js';
+import { exploreSmallestUnlock } from '../counterfactual/engine.js';
+import type { NormalizedHousingCase } from '../retention-paths/domain.js';
 
 const domains = ['behavior', 'cost', 'medical', 'temporary_crisis', 'time_capacity', 'circumstances'] as const;
 const facts = (primaryBarrier: string, value: true | false | 'unknown'): NormalizedHousingCase => ({

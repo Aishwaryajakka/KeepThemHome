@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { petTypeSchema } from './case';
+import { petTypeSchema } from './case.js';
 
 export const createPetSchema = z.object({
   name: z.string().trim().min(1).max(100),

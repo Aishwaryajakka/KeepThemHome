@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { goalSchema, petTypeSchema, primaryBarrierSchema, urgencySchema } from './case';
+import { goalSchema, petTypeSchema, primaryBarrierSchema, urgencySchema } from './case.js';
 
 export const MAX_INTAKE_TEXT_LENGTH = 3000;
 

@@ -2,6 +2,10 @@
 
 Keep Them Home is a React/Vite pet surrender-prevention navigator. The frontend keeps an immediate reducer and `sessionStorage` copy of an assessment while optionally synchronizing cases, structured factors, outcomes, and deterministic plans through Vercel functions to Neon PostgreSQL.
 
+> **Models interpret and explain. Code decides. Data grounds execution. Outcomes teach.**
+
+The product helps people understand realistic ways to keep a pet at home when housing, behavior, cost, veterinary care, temporary crises, time/capacity, or family changes overlap. It does not predict surrender or guarantee assistance.
+
 ## Local development
 
 Requirements: Node.js 20 or newer and pnpm.
@@ -41,7 +45,22 @@ Anonymous owners can complete intake, use the deterministic local Housing path s
 
 `/my-pets` lists the authenticated owner’s saved pets and most recent cases. Continuing a case reloads the owned pet, case, factors, and outcomes from Neon, validates the reconstructed assessment state, stores it as the active local session, and opens the existing plan without repeating intake. Opening a different pet replaces rather than merges the active assessment.
 
-Required configuration:
+### Environment variables
+
+| Variable | Scope | Production | Purpose |
+| --- | --- | --- | --- |
+| `VITE_CLERK_PUBLISHABLE_KEY` | Client-safe | Required | Clerk browser initialization. This is the only Clerk value allowed under `VITE_`. |
+| `CLERK_SECRET_KEY` | Server-only | Required | Verifies Clerk sessions. |
+| `CLERK_PUBLISHABLE_KEY` | Server-only | Required | Clerk backend configuration. |
+| `CLERK_AUTHORIZED_PARTIES` | Server-only | Recommended | Comma-separated trusted local and production origins. |
+| `DATABASE_URL` | Server-only | Required | Neon PostgreSQL connection. |
+| `GROQ_API_KEY` | Server-only | Required for natural-language intake | Structured extraction and bounded explanations. Guided intake still works if unavailable. |
+| `GROQ_MODEL` | Server-only | Required with Groq | Explicit model selection. |
+| `VITE_SENTRY_DSN` | Client-safe | Optional | Client error reporting when intentionally configured. |
+
+No server secret may use a `VITE_` prefix. Pass 14 uses a local deterministic structured-feature embedding and therefore requires no embedding-provider key.
+
+Example configuration:
 
 ```sh
 VITE_CLERK_PUBLISHABLE_KEY=
@@ -54,7 +73,7 @@ CLERK_AUTHORIZED_PARTIES=http://localhost:5173,https://your-production-domain.ex
 
 Public endpoints are `POST /api/intake/extract`, `GET /api/resources`, and the validated anonymous `POST /api/evidence/preview`. `/api/me`, `/api/pets*`, `/api/cases*`, and all case-specific factors, outcomes, plan, paths, unlock, explanation, and evidence endpoints require a valid Clerk session. Protected object lookups are scoped by internal user ID; unauthenticated requests return `401`, while missing and foreign objects both return privacy-preserving `404`.
 
-Pass 12 adds no task/action tracking, notifications, vector columns, embeddings, similarity search, or RAG. Unit tests use injected identities and do not call Clerk. Live Clerk and Neon verification require local credentials and are reported separately from deterministic validation.
+Unit tests use injected identities and do not call Clerk. Live Clerk and Neon verification require configured credentials and must be reported separately from deterministic validation.
 
 ## Verified resources and deterministic plans
 
@@ -73,6 +92,36 @@ pnpm db:verify
 ```
 
 The eight verified resource records remain in `src/data/resources.ts` as the offline/demo fallback and seed source. Their factual content, URLs, verification date, and local matching behavior are unchanged.
+
+## Action, similarity, and outcome loop
+
+Owners choose deterministic path actions and may mark them Planned, In progress, Completed, or Not possible. Completion never changes a case fact. Only a controlled, explicitly confirmed result can patch an allowed structured fact and trigger solver recomputation. Structured case events retain the action, fact, path-transition, and self-reported outcome history.
+
+Similarity profiles use only controlled non-PII fields: pet type, factor categories, urgency bucket, constraint keys, path, blockers, interventions, and outcome category. Raw stories and notes are never embedded. Neon pgvector performs candidate retrieval, while deterministic overlap rules keep ranking interpretable. Real cases are private by default; curated demo profiles are visibly synthetic. Similarity describes circumstances, not likelihood of success.
+
+Final outcomes are self-reported as Keeping Pet, Still Trying, or Rehoming Support Needed. Optional “reported as helpful” factors are structured and do not imply causation. Reporting an outcome updates case lifecycle, adds a timeline event, and refreshes the privacy-safe similarity profile without training an online model.
+
+## Demo Mode
+
+Demo Mode loads the canonical, synthetic Luna scenario without requiring Groq or creating database records:
+
+> My landlord is threatening eviction because Luna barks while I’m at work. I have a week and can’t afford a trainer.
+
+It demonstrates one synthesized Housing + Behavior + Cost case, three deterministic housing paths, Smallest Unlock, hypothetical recomputation, action tracking, similar synthetic situations, and the outcome loop. Reset Demo clears temporary assessment, action, hypothetical, outcome, and timeline state; it never deletes saved Neon cases.
+
+## Known limitations
+
+- Resource availability, eligibility, funding, foster space, and housing resolution are never guaranteed.
+- Behavior guidance is not a diagnosis, and veterinary resources are not medical advice.
+- Similarity is structured retrieval, not prediction; synthetic examples are labeled synthetic.
+- Smallest Unlock is limited to changes represented in the controlled solver catalog.
+- Outcomes and helpful factors are self-reported and do not establish causation.
+- Natural-language extraction depends on Groq, but guided intake and deterministic Demo Mode remain available without it.
+- The current HNSW vectors use deterministic structured feature hashing rather than a general semantic embedding model.
+
+## Submission validation
+
+Run `pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`. With a configured non-production verification database, also run migrations, resource seeding, and `pnpm db:verify`. Do not run mutation-based verification against production owner records.
 
 ## Counterfactual Explorer and Smallest Unlock
 

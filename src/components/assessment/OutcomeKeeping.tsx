@@ -1,19 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ArrowRight, CheckCircle2, RotateCcw, FileText, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { HelpfulFactor } from '@/lib/case-api';
 
 interface OutcomeKeepingProps {
   petName: string;
   onStartAnotherCase: () => void;
   onReviewPlan: () => void;
+  onReportHelpful?: (factors: HelpfulFactor[]) => void;
+  onThingsChanged?: () => void;
 }
 
 export const OutcomeKeeping: React.FC<OutcomeKeepingProps> = ({
   petName,
   onStartAnotherCase,
   onReviewPlan,
+  onReportHelpful,
+  onThingsChanged,
 }) => {
   const displayName = petName.trim() || 'Luna';
+  const [helpful, setHelpful] = useState<HelpfulFactor[]>([]);
+  const helpfulOptions: Array<{ value: HelpfulFactor; label: string }> = [
+    { value: 'HOUSING_RESOLUTION', label: 'Housing issue changed' }, { value: 'BEHAVIOR_SUPPORT', label: 'Behavior became manageable' },
+    { value: 'FINANCIAL_SUPPORT', label: 'Financial support' }, { value: 'VETERINARY_SUPPORT', label: 'Veterinary support' },
+    { value: 'TEMPORARY_CARE', label: 'Temporary care' }, { value: 'TRUSTED_NETWORK', label: 'Help from family/friends' },
+    { value: 'ROUTINE_CHANGE', label: 'Routine/caregiving changes' }, { value: 'OTHER', label: 'Other' },
+  ];
 
   return (
     <div className="py-12 sm:py-20 md:py-28 px-4 sm:px-6 md:px-8 max-w-3xl mx-auto w-full">
@@ -21,7 +33,7 @@ export const OutcomeKeeping: React.FC<OutcomeKeepingProps> = ({
       <div className="mb-6">
         <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#A7B89F]/30 border border-[#A7B89F]/60 text-[#2E5440] text-xs sm:text-sm font-semibold tracking-wider uppercase font-sans">
           <CheckCircle2 className="w-4 h-4 text-[#2E5440]" />
-          <span>GOOD NEWS</span>
+          <span>OUTCOME UPDATE</span>
         </span>
       </div>
 
@@ -34,7 +46,7 @@ export const OutcomeKeeping: React.FC<OutcomeKeepingProps> = ({
           Thank you for letting us know.
         </p>
         <p className="font-sans text-base sm:text-lg text-[#2D2D2D]/85 leading-relaxed max-w-2xl text-pretty">
-          Every situation is different. We’re glad you found a path that works for you and {displayName}.
+          Every situation is different. Your plan and history will remain available if you need them.
         </p>
       </div>
 
@@ -86,6 +98,8 @@ export const OutcomeKeeping: React.FC<OutcomeKeepingProps> = ({
         </div>
       </div>
 
+      <fieldset className="mb-10 rounded-2xl border border-[#A7B89F]/45 bg-white/85 p-6"><legend className="px-1 font-serif text-xl text-[#2E5440]">What helped most? <span className="font-sans text-sm font-normal">(optional)</span></legend><div className="mt-3 grid gap-2 sm:grid-cols-2">{helpfulOptions.map((option) => <label key={option.value} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={helpful.includes(option.value)} onChange={() => { const next = helpful.includes(option.value) ? helpful.filter((value) => value !== option.value) : [...helpful, option.value]; setHelpful(next); onReportHelpful?.(next); }} />{option.label}</label>)}</div><p className="mt-3 text-xs text-[#2D2D2D]/65">Reported as helpful. This does not establish what caused the outcome.</p></fieldset>
+
       {/* Decision CTAs */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
         <Button
@@ -108,6 +122,7 @@ export const OutcomeKeeping: React.FC<OutcomeKeepingProps> = ({
           <FileText className="w-4 h-4" />
           <span>Review my plan</span>
         </Button>
+        {onThingsChanged && <Button type="button" variant="ghost" onClick={onThingsChanged} size="lg" className="text-[#2E5440]">Things changed</Button>}
       </div>
     </div>
   );

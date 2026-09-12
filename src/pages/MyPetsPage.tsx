@@ -11,7 +11,7 @@ import { ArrowRight, Heart, PawPrint } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { factorLabel } from '@/lib/presentation';
 
-const outcomeLabel = (value: string) => ({ keeping: 'Keeping pet', still_trying: 'Still trying', rehoming_help: 'Rehoming help needed' })[value as 'keeping'] ?? 'Plan created';
+const outcomeLabel = (value: string) => ({ KEEPING_PET: 'Keeping pet', STILL_TRYING: 'Still trying', REHOMING_SUPPORT_NEEDED: 'Rehoming support', keeping: 'Keeping pet', still_trying: 'Still trying', rehoming_help: 'Rehoming support' })[value as 'KEEPING_PET'] ?? 'Plan created';
 
 export default function MyPetsPage() {
   const auth = useAppAuth();
@@ -46,12 +46,12 @@ export default function MyPetsPage() {
     return () => window.removeEventListener(SAVED_PLANS_CHANGED_EVENT, refresh);
   }, []);
 
-  const continueCase = async (caseId: string) => {
+  const continueCase = async (caseId: string, checkIn = false) => {
     try {
       const saved = await caseApi.getCase(caseId);
       const restored = restorePersistedCase(saved);
       if (!restored) throw new Error('Invalid saved case');
-      persistAssessmentCase(restored);
+      persistAssessmentCase(checkIn ? { ...restored, currentScreen: 'outcome-checkin' } : restored);
       navigate('/');
     } catch { setStatus('error'); }
   };
@@ -69,10 +69,12 @@ export default function MyPetsPage() {
         return <article key={item.case.id} className="flex flex-col rounded-3xl border border-[#A7B89F]/35 bg-white p-6 shadow-[0_18px_55px_rgba(46,84,64,0.06)] sm:p-7">
           <div className="flex items-start justify-between gap-4"><div><h2 className="font-serif text-3xl text-[#2E5440]">{item.pet.name}</h2><p className="mt-1 flex items-center gap-1.5 capitalize text-sm text-[#2D2D2D]/65"><PawPrint className="h-3.5 w-3.5" aria-hidden="true" />{item.pet.type}</p></div>{currentPath && <StatusBadge status={currentPath.status} />}</div>
           <dl className="mt-6 grid gap-4 text-sm"><div><dt className="text-xs font-semibold text-[#2E5440]/60">Current plan</dt><dd className="mt-1 font-serif text-xl text-[#2E5440]">{currentPath?.title ?? `${factorLabel(item.case.primaryBarrier ?? '')} plan`}</dd></div>
-          <div><dt className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/60">Progress</dt><dd className="mt-1 text-[#2D2D2D]/75">{currentPath ? `${currentPath.blockers.length} ${currentPath.blockers.length === 1 ? 'blocker' : 'blockers'} remaining` : item.latestOutcome ? outcomeLabel(item.latestOutcome.status) : 'Plan ready to continue'}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/60">Outcome</dt><dd className="mt-1 text-[#2D2D2D]/75">{item.latestOutcome ? outcomeLabel(item.latestOutcome.status) : 'No outcome reported'}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/60">Progress</dt><dd className="mt-1 text-[#2D2D2D]/75">{item.latestOutcome?.status === 'KEEPING_PET' ? `${item.pet.name} is staying home` : currentPath ? `${currentPath.blockers.length} ${currentPath.blockers.length === 1 ? 'blocker' : 'blockers'} remaining` : 'Plan ready to continue'}</dd></div>
+          <div><dt className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/60">Next steps</dt><dd className="mt-1 text-[#2D2D2D]/75">{item.activeActionCount ?? 0} active {(item.activeActionCount ?? 0) === 1 ? 'action' : 'actions'}</dd></div>
           {contributors.length > 0 && <div><dt className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/60">Also affecting</dt><dd className="mt-1 text-[#2D2D2D]/75">{contributors.join(', ')}</dd></div>}
           <div><dt className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/60">Last updated</dt><dd className="mt-1 text-[#2D2D2D]/75">{new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(item.case.updatedAt))}</dd></div></dl>
-          <Button className="mt-7 w-full bg-[#2E5440] text-[#FAF7F2] sm:w-auto sm:self-start" onClick={() => void continueCase(item.case.id)}>Continue {item.pet.name}’s plan <ArrowRight className="ml-2 h-4 w-4" /></Button>
+          <div className="mt-7 flex flex-wrap gap-3"><Button className="bg-[#2E5440] text-[#FAF7F2]" onClick={() => void continueCase(item.case.id)}>{item.latestOutcome?.status === 'KEEPING_PET' ? 'View plan history' : `Continue ${item.pet.name}’s plan`} <ArrowRight className="ml-2 h-4 w-4" /></Button><Button variant="outline" className="border-[#2E5440] text-[#2E5440]" onClick={() => void continueCase(item.case.id, true)}>How are things with {item.pet.name}?</Button></div>
         </article>;
       })}
       <div className="md:col-span-2"><Button variant="outline" className="border-[#2E5440] text-[#2E5440]" onClick={() => navigate('/')}>Find options for another pet</Button></div>

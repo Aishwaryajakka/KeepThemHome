@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { describe, expect, it, vi } from 'vitest';
-import { createApiRouter, type ApiHandler, type ApiHandlers } from '../api-router';
-import { createMeHandler } from '../api-handlers/me';
-import { createPathsHandler } from '../api-handlers/cases/[id]/paths';
+import { createApiRouter, type ApiHandler, type ApiHandlers } from '../api-router.js';
+import { createMeHandler } from '../api-handlers/me.js';
+import { createPathsHandler } from '../api-handlers/cases/[id]/paths.js';
 
 const caseId = '550e8400-e29b-41d4-a716-446655440000';
 const petId = '650e8400-e29b-41d4-a716-446655440000';
@@ -26,6 +26,7 @@ const handlerSet = () => {
     me: make(), pets: make(), pet: make(), cases: make(), case: make(), factors: make(), outcomes: make(),
     plan: make(), paths: make(), unlock: make(), explain: make(), evidence: make(), intake: make(),
     resources: make(), evidencePreview: make(),
+    actions: make(), action: make(), actionOutcome: make(), similar: make(),
   };
   return handlers;
 };
@@ -49,6 +50,10 @@ describe('consolidated API router', () => {
     ['intake/extract', 'POST', 'intake'],
     ['resources', 'GET', 'resources'],
     ['evidence/preview', 'POST', 'evidencePreview'],
+    [`cases/${caseId}/actions`, 'GET', 'actions'],
+    [`cases/${caseId}/actions/${petId}`, 'PATCH', 'action'],
+    [`cases/${caseId}/actions/${petId}/outcome`, 'POST', 'actionOutcome'],
+    [`cases/${caseId}/similar`, 'GET', 'similar'],
   ] as const)('routes /api/%s %s to %s', async (path, method, key) => {
     const handlers = handlerSet();
     await createApiRouter(handlers)(request(method, path), responseDouble().response);

@@ -1,6 +1,6 @@
-import { exploreSmallestUnlock } from '../counterfactual/engine';
-import type { SupportedChangeCode } from '../counterfactual/domain';
-import { loadNormalizedHousingCase } from './path-service';
+import { exploreSmallestUnlock } from '../counterfactual/engine.js';
+import type { SupportedChangeCode } from '../counterfactual/domain.js';
+import { loadNormalizedHousingCase } from './path-service.js';
 
 export const generateSmallestUnlock = async (
   caseId: string,

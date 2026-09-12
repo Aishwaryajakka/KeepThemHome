@@ -14,6 +14,8 @@ import { applySupportedChanges, exploreSmallestUnlock } from '../../../server/co
 import { materializeSupportedChanges } from '../../../server/counterfactual/catalog';
 import type { NormalizedHousingCase } from '../../../server/retention-paths/domain';
 import { factorLabel } from '@/lib/presentation';
+import NextSteps from './NextSteps';
+import SimilarSituations from './SimilarSituations';
 
 interface HousingActionPlanProps {
   backendCaseId?: string;
@@ -31,6 +33,7 @@ interface HousingActionPlanProps {
   signedIn?: boolean;
   primaryBarrier?: BarrierType;
   domainAnswers?: { primarySupportPossible: TriStateAnswer; bridgeAvailable: TriStateAnswer; alternativeAvailable: TriStateAnswer; urgency: HousingTiming };
+  onCheckIn?: () => void;
 }
 
 const NONE: BarrierType[] = [];
@@ -58,7 +61,7 @@ const factLabel = (field: string, hypothetical = false) => {
 export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
   backendCaseId, petName, petType, situation, timing, goal, onBack, onSavePlan,
   saveStatus = 'idle', contributingBarriers = NONE, costConstraint = '', authLoaded = true, signedIn = false,
-  primaryBarrier = 'housing', domainAnswers = EMPTY_DOMAIN,
+  primaryBarrier = 'housing', domainAnswers = EMPTY_DOMAIN, onCheckIn,
 }) => {
   const displayName = petName.trim() || 'Luna';
   const [backendPlan, setBackendPlan] = useState<CasePlan | null>(null);
@@ -194,6 +197,8 @@ export const HousingActionPlan: React.FC<HousingActionPlanProps> = ({
       {preview && <section className="motion-safe:animate-fade-in mt-8 rounded-2xl border-2 border-[#3D6E82] bg-[#EAF3F5] p-6 sm:p-8" aria-labelledby="preview-heading"><p className="text-sm font-bold uppercase tracking-[.16em] text-[#315C6D]">Hypothetical preview</p><h3 id="preview-heading" className="mt-2 font-serif text-4xl text-[#315C6D]">This path could become possible if these conditions change.</h3><div className="mt-7 grid items-stretch gap-4 lg:grid-cols-[1fr_auto_1fr]"><div className="rounded-xl bg-white p-5"><p className="text-sm font-bold uppercase tracking-wider text-[var(--text-muted)]">Current reality</p><StatusBadge status={preview.current.status} className="mt-3 rounded-lg px-3 py-2 text-2xl" /><ul className="mt-5 space-y-3">{preview.current.blockers.map((blocker) => <li key={blocker.field} className="text-base font-semibold">{factLabel(blocker.field)}</li>)}</ul></div><div className="flex items-center justify-center text-4xl text-[#315C6D]" aria-hidden="true">→</div><div className="rounded-xl bg-white p-5"><p className="text-sm font-bold uppercase tracking-wider text-[#315C6D]">Hypothetical</p><StatusBadge status={preview.hypothetical.status} className="mt-3 rounded-lg px-3 py-2 text-2xl" /><ul className="mt-5 space-y-3">{preview.changes.map((change) => <li key={change.code} className="text-base font-semibold">{factLabel(change.field, true)}</li>)}</ul></div></div><p className="mt-6 text-lg font-bold text-[#315C6D]">Your actual case has not changed.</p><Button type="button" variant="outline" onClick={() => void resetPreview()} className="mt-4 border-[#315C6D] text-[#315C6D]"><RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" />Reset to current reality</Button></section>}
 
       {evidence[selectedPath.key]?.evidence.length ? <aside className="mt-10 border-t border-[var(--border-warm)] pt-8" aria-label={`Evidence for ${selectedPath.title}`}><h3 className="font-serif text-3xl text-[var(--forest)]">Why this is grounded</h3><p className="mt-2 text-base text-[var(--text-muted)]">These sources support the factors and interventions considered in this path.</p><div className="mt-5 grid gap-4 md:grid-cols-3">{evidence[selectedPath.key].evidence.slice(0, 3).map((source) => <article key={source.id} className="rounded-xl border border-[var(--border-warm)] bg-white p-5"><p className="text-sm font-bold uppercase tracking-wider text-[var(--forest)]">{source.organization}</p><p className="mt-2 font-serif text-xl text-[var(--charcoal)]">{source.title}</p><p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">{source.claims[0]?.summary ?? source.whyRelevant}</p><a href={source.url} target="_blank" rel="noopener noreferrer" className="brand-focus mt-4 inline-flex rounded text-sm font-bold text-[var(--forest)] underline underline-offset-4">View source <ExternalLink className="ml-1 h-4 w-4" aria-hidden="true" /></a></article>)}</div>{evidence[selectedPath.key].evidence.length > 3 && <details className="mt-4"><summary className="cursor-pointer font-bold text-[var(--forest)]">View all evidence</summary><ul className="mt-3 space-y-2">{evidence[selectedPath.key].evidence.slice(3).map((source) => <li key={source.id}>{source.organization} — {source.title}</li>)}</ul></details>}</aside> : null}
+      <NextSteps backendCaseId={backendCaseId} path={selectedPath} facts={localFacts} onRecompute={(results) => { setPaths(results); setPreview(null); setUnlock(null); }} onCheckIn={onCheckIn} />
+      <SimilarSituations backendCaseId={backendCaseId} petType={petType} path={selectedPath} facts={localFacts} />
     </section>}
 
     <section className="mt-12 border-t border-[var(--border-warm)] pt-10" aria-labelledby="resources-heading"><h2 id="resources-heading" className="font-serif text-4xl text-[var(--forest)]">Resources that may help</h2><p className="mt-3 text-base text-[var(--text-muted)]">These are places to explore support. Availability and eligibility can vary.</p><div className="mt-6 grid gap-5 md:grid-cols-3">{resources.map((resource) => <article key={resource.id} className="flex flex-col rounded-xl border border-[var(--sage)]/45 bg-white p-5"><p className="text-sm font-bold uppercase tracking-wider text-[var(--forest)]">{resource.sourceName}</p><h3 className="mt-2 font-serif text-2xl text-[var(--forest)]">{resource.name}</h3><p className="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">{resource.description}</p><a href={resource.url} target="_blank" rel="noopener noreferrer" className="brand-focus mt-auto pt-5 text-sm font-bold text-[var(--forest)] underline underline-offset-4">Visit resource <ExternalLink className="ml-1 inline h-4 w-4" aria-hidden="true" /></a></article>)}</div></section>

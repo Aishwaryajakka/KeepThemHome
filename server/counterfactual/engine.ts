@@ -1,7 +1,7 @@
-import { materializeSupportedChanges, relevantSupportedChanges } from './catalog';
-import type { SupportedChange, SupportedChangeCode, UnlockCandidate, UnlockResult } from './domain';
-import type { NormalizedHousingCase, PathEvaluation } from '../retention-paths/domain';
-import { solveRetentionPaths } from '../retention-paths/solver';
+import { materializeSupportedChanges, relevantSupportedChanges } from './catalog.js';
+import type { SupportedChange, SupportedChangeCode, UnlockCandidate, UnlockResult } from './domain.js';
+import type { NormalizedHousingCase, PathEvaluation } from '../retention-paths/domain.js';
+import { solveRetentionPaths } from '../retention-paths/solver.js';
 
 export const MAX_UNLOCK_CHANGES = 3;
 

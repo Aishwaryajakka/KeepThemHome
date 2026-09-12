@@ -1,18 +1,18 @@
 import { describe, expect, it, vi } from 'vitest';
-import { exploreSmallestUnlock } from '../counterfactual/engine';
-import type { GroundedExplanationPayload } from '../explanation/domain';
-import { deterministicExplanation } from '../explanation/fallback';
-import { isGroundedExplanation } from '../explanation/grounding';
-import { generateGroundedExplanation } from '../explanation/groq';
-import { ExtractionFailedError, ProviderUnavailableError } from '../intake/groq';
-import { normalizeHousingCase } from '../retention-paths/normalize';
-import { solveRetentionPaths } from '../retention-paths/solver';
+import { exploreSmallestUnlock } from '../counterfactual/engine.js';
+import type { GroundedExplanationPayload } from '../explanation/domain.js';
+import { deterministicExplanation } from '../explanation/fallback.js';
+import { isGroundedExplanation } from '../explanation/grounding.js';
+import { generateGroundedExplanation } from '../explanation/groq.js';
+import { ExtractionFailedError, ProviderUnavailableError } from '../intake/groq.js';
+import { normalizeHousingCase } from '../retention-paths/normalize.js';
+import { solveRetentionPaths } from '../retention-paths/solver.js';
 import {
   buildGroundedExplanationPayload,
   explainCasePath,
   type ExplanationDependencies,
-} from '../services/explanation-service';
-import { explanationOutputSchema } from '../validation/explanation';
+} from '../services/explanation-service.js';
+import { explanationOutputSchema } from '../validation/explanation.js';
 
 const lunaFacts = normalizeHousingCase(
   { primaryBarrier: 'housing', urgency: 'This week', goal: 'Stay where I am' },

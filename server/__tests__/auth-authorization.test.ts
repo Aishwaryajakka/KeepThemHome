@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { describe, expect, it, vi } from 'vitest';
-import { createMeHandler } from '../api-handlers/me';
-import { createPetsHandler } from '../api-handlers/pets';
-import { createPetHandler } from '../api-handlers/pets/[id]';
-import { createCasesHandler } from '../api-handlers/cases';
-import { createCaseHandler } from '../api-handlers/cases/[id]';
-import { createFactorsHandler } from '../api-handlers/cases/[id]/factors';
-import { createOutcomesHandler } from '../api-handlers/cases/[id]/outcomes';
-import { createPathsHandler } from '../api-handlers/cases/[id]/paths';
+import { createMeHandler } from '../api-handlers/me.js';
+import { createPetsHandler } from '../api-handlers/pets.js';
+import { createPetHandler } from '../api-handlers/pets/[id].js';
+import { createCasesHandler } from '../api-handlers/cases.js';
+import { createCaseHandler } from '../api-handlers/cases/[id].js';
+import { createFactorsHandler } from '../api-handlers/cases/[id]/factors.js';
+import { createOutcomesHandler } from '../api-handlers/cases/[id]/outcomes.js';
+import { createPathsHandler } from '../api-handlers/cases/[id]/paths.js';
 
 const caseId = '550e8400-e29b-41d4-a716-446655440000';
 const petId = '650e8400-e29b-41d4-a716-446655440000';

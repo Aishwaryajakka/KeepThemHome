@@ -21,7 +21,7 @@ export const Hero: React.FC<HeroProps> = ({ onStart }) => (
       <Reveal delay={0.28}><ul className="mt-11 grid max-w-[600px] grid-cols-2 gap-6 sm:grid-cols-4">{traits.map(([Icon, label], index) => <li key={label} className="text-xs font-medium tracking-[0.05em] text-[var(--charcoal)]/75"><Icon className={`mb-3 h-7 w-7 ${index % 2 === 0 ? 'text-[var(--warm-sand)]' : 'text-[var(--forest)]'}`} strokeWidth={1.8} aria-hidden="true" />{label}</li>)}</ul></Reveal>
     </div>
     <Reveal direction="right" delay={0.1} className="relative min-h-[590px] lg:min-h-[600px]">
-      <img src="/images/pets-resting-hero.png" alt="A golden retriever and tabby cat resting together" className="landing-hero-photo absolute inset-0 h-full w-full object-cover object-center" />
+      <img src="/images/pets-resting-hero.jpg" alt="A golden retriever and tabby cat resting together" width="1672" height="941" decoding="async" fetchPriority="high" className="landing-hero-photo absolute inset-0 h-full w-full object-cover object-center" />
       <div className="absolute inset-0 bg-gradient-to-r from-[var(--cream)]/55 via-transparent to-transparent lg:from-[var(--cream)]/28" aria-hidden="true" />
       <div className="brand-script pointer-events-none absolute left-6 top-12 -rotate-3 text-center text-[28px] text-[#B77B5E] sm:left-10 sm:text-[32px]"><span>People and pets<br />belong together.</span><Heart className="mx-auto mt-1 h-7 w-7" strokeWidth={1.25} aria-hidden="true" /></div>
       <div className="brand-script pointer-events-none absolute bottom-20 right-5 hidden rotate-3 text-center text-[25px] text-[#B77B5E] sm:block"><span>Real solutions.<br />Brighter<br />tomorrows.</span><PawPrint className="mx-auto mt-1 h-5 w-5" strokeWidth={1.5} aria-hidden="true" /></div>

@@ -1,7 +1,7 @@
 import { count } from 'drizzle-orm';
-import { getDatabase } from '../db';
-import { cases, pets, users } from '../db/schema';
-import { demoSeedManifest } from '../demo/scenarios';
+import { getDatabase } from '../db.js';
+import { cases, pets, users } from '../db/schema.js';
+import { demoSeedManifest } from '../demo/scenarios.js';
 
 export const verifySafeDemoSeed = async () => {
   const db = getDatabase();

@@ -1,6 +1,6 @@
-import type { SupportedChange } from '../counterfactual/domain';
-import type { PathBlocker, PathStatus } from '../retention-paths/domain';
-import type { ExplanationMode } from '../validation/explanation';
+import type { SupportedChange } from '../counterfactual/domain.js';
+import type { PathBlocker, PathStatus } from '../retention-paths/domain.js';
+import type { ExplanationMode } from '../validation/explanation.js';
 
 export interface GroundedExplanationPayload {
   pet: { name: string; type: string };

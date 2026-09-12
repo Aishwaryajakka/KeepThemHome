@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { evidenceClaimCodes, type EvidenceClaim, type EvidenceClaimCode, type EvidenceSource } from './domain';
+import { evidenceClaimCodes, type EvidenceClaim, type EvidenceClaimCode, type EvidenceSource } from './domain.js';
 
 export const evidenceClaims: Record<EvidenceClaimCode, EvidenceClaim> = {
   MULTI_FACTOR_SURRENDER: { code: 'MULTI_FACTOR_SURRENDER', label: 'Multiple contributing circumstances', summary: 'Pet surrender situations can involve several contributing circumstances rather than one isolated reason.' },

@@ -1,7 +1,8 @@
 export type ApiPetType = 'dog' | 'cat' | 'other';
 export type ApiBarrier = 'housing' | 'behavior' | 'cost' | 'medical' | 'temporary_crisis' | 'time_capacity' | 'circumstances';
-export type ApiCaseStatus = 'active' | 'keeping' | 'still_trying' | 'rehoming_help' | 'closed';
-export type ApiOutcomeStatus = 'keeping' | 'still_trying' | 'rehoming_help';
+export type ApiCaseStatus = 'ACTIVE' | 'KEEPING_PET' | 'REHOMING_SUPPORT' | 'ARCHIVED' | 'active' | 'keeping' | 'still_trying' | 'rehoming_help' | 'closed';
+export type ApiOutcomeStatus = 'KEEPING_PET' | 'STILL_TRYING' | 'REHOMING_SUPPORT_NEEDED';
+export type HelpfulFactor = 'HOUSING_RESOLUTION' | 'BEHAVIOR_SUPPORT' | 'FINANCIAL_SUPPORT' | 'VETERINARY_SUPPORT' | 'TEMPORARY_CARE' | 'TRUSTED_NETWORK' | 'ROUTINE_CHANGE' | 'OTHER';
 
 export interface CaseResponse {
   id: string;
@@ -42,9 +43,21 @@ export interface PetResponse {
 }
 
 export interface PersistedFactor extends FactorInput { id: string; caseId: string; createdAt: string; }
-export interface PersistedOutcome { id: string; caseId: string; status: ApiOutcomeStatus; unresolvedBarrier: string | null; notes: string | null; createdAt: string; }
-export interface SavedCaseSummary { case: CaseResponse; pet: PetResponse; factors: PersistedFactor[]; latestOutcome: PersistedOutcome | null; }
+export interface PersistedOutcome { id: string; caseId: string; status: ApiOutcomeStatus; unresolvedBarrier: string | null; notes: string | null; helpfulFactors?: HelpfulFactor[]; createdAt: string; }
+export interface SavedCaseSummary { case: CaseResponse; pet: PetResponse; factors: PersistedFactor[]; latestOutcome: PersistedOutcome | null; activeActionCount?: number; }
 export interface SavedCaseDetail { case: CaseResponse; pet: PetResponse | null; factors: PersistedFactor[]; outcomes: PersistedOutcome[]; }
+
+export interface SimilarCase {
+  id: string;
+  provenance: 'synthetic_example' | 'anonymous_shared_case';
+  similarityLabel: 'High similarity' | 'Medium similarity' | 'Similar situation';
+  petType: string;
+  factors: string[];
+  pathKey: string;
+  actions: string[];
+  outcomeCategory: 'KEEPING_PET' | 'STILL_TRYING' | 'REHOMING_SUPPORT_NEEDED' | 'UNKNOWN';
+  reasons: string[];
+}
 
 export interface FactorInput {
   factorType: string;
@@ -265,9 +278,9 @@ export const caseApi = {
       method: 'POST', body: JSON.stringify({ factors }),
     }),
 
-  recordOutcome: async (id: string, status: ApiOutcomeStatus) =>
+  recordOutcome: async (id: string, status: ApiOutcomeStatus, helpfulFactors: HelpfulFactor[] = [], notes?: string | null) =>
     requestJson(`/api/cases/${id}/outcomes`, {
-      method: 'POST', body: JSON.stringify({ status }),
+      method: 'POST', body: JSON.stringify({ status, helpfulFactors, notes }),
     }),
 
   getActions: async (id: string) => requestJson<ActionsResponse>(`/api/cases/${id}/actions`),
@@ -277,6 +290,9 @@ export const caseApi = {
     (await requestJson<{ action: CaseAction }>(`/api/cases/${id}/actions/${actionId}`, { method: 'PATCH', body: JSON.stringify(input) })).action,
   recordActionOutcome: async (id: string, actionId: string, outcomeKey: string, resultNote?: string | null) =>
     requestJson<{ action: CaseAction; changedFact: { field: string; value: boolean } | null; paths: RetentionPathResult[]; transitions: Array<{ pathKey: string; title: string; from: RetentionPathStatus; to: RetentionPathStatus }> }>(`/api/cases/${id}/actions/${actionId}/outcome`, { method: 'POST', body: JSON.stringify({ outcomeKey, resultNote }) }),
+
+  getSimilarCases: async (id: string) =>
+    requestJson<{ cases: SimilarCase[]; disclaimer: string }>(`/api/cases/${id}/similar`),
 
   getPlan: async (id: string) =>
     requestJson<CasePlan>(`/api/cases/${id}/plan`, { method: 'POST' }),

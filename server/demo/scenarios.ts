@@ -1,4 +1,4 @@
-import type { NormalizedHousingCase } from '../retention-paths/domain';
+import type { NormalizedHousingCase } from '../retention-paths/domain.js';
 
 export const DEMO_SOURCE = 'keep-them-home-synthetic-demo-v1' as const;
 

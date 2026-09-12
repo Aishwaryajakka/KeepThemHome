@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { describe, expect, it, vi } from 'vitest';
-import { createPathsHandler } from '../api-handlers/cases/[id]/paths';
+import { createPathsHandler } from '../api-handlers/cases/[id]/paths.js';
 
 const caseId = '550e8400-e29b-41d4-a716-446655440000';
 const responseDouble = () => {

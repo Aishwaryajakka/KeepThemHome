@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { describe, expect, it, vi } from 'vitest';
-import { createIntakeHandler } from '../api-handlers/intake/extract';
-import { ExtractionFailedError } from '../intake/groq';
-import { lunaExtraction } from './intake.test';
+import { createIntakeHandler } from '../api-handlers/intake/extract.js';
+import { ExtractionFailedError } from '../intake/groq.js';
+import { lunaExtraction } from './intake.test.js';
 
 const responseDouble = () => {
   const response = {

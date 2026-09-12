@@ -1,4 +1,4 @@
-import type { ConstraintKey, NormalizedHousingCase, PathBlocker, PathEvaluation } from '../retention-paths/domain';
+import type { ConstraintKey, NormalizedHousingCase, PathBlocker, PathEvaluation } from '../retention-paths/domain.js';
 
 export type SupportedChangeCode =
   | 'ALLOW_STAY_OR_MOVE'

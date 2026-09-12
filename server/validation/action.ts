@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { actionStatuses, notPossibleReasons } from '../actions/domain';
+import { actionStatuses, notPossibleReasons } from '../actions/domain.js';
 
 export const createActionSchema = z.object({ pathKey: z.string().regex(/^[a-z0-9_]+$/), actionKey: z.string().regex(/^[a-z0-9_]+$/) }).strict();
 export const updateActionSchema = z.object({

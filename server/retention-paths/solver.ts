@@ -1,11 +1,11 @@
-import { retentionPathCatalog } from './catalog';
+import { retentionPathCatalog } from './catalog.js';
 import type {
   NormalizedHousingCase,
   PathBlocker,
   PathEvaluation,
   PathStatus,
   RetentionPathDefinition,
-} from './domain';
+} from './domain.js';
 
 const statusBase: Record<PathStatus, number> = { FEASIBLE: 300, CONDITIONAL: 200, BLOCKED: 100 };
 

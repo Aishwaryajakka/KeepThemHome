@@ -10,6 +10,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  vector,
 } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
@@ -38,7 +39,8 @@ export const cases = pgTable('cases', {
   primaryBarrier: text('primary_barrier'),
   urgency: text('urgency'),
   goal: text('goal'),
-  currentStatus: text('current_status').notNull().default('active'),
+  currentStatus: text('current_status').notNull().default('ACTIVE'),
+  similaritySharingEnabled: boolean('similarity_sharing_enabled').notNull().default(false),
   userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }),
   petId: uuid('pet_id').references(() => pets.id, { onDelete: 'cascade' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -71,6 +73,7 @@ export const outcomes = pgTable('outcomes', {
   status: text('status').notNull(),
   unresolvedBarrier: text('unresolved_barrier'),
   notes: text('notes'),
+  helpfulFactors: jsonb('helpful_factors').$type<string[]>().notNull().default([]),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [
   index('outcomes_case_id_idx').on(table.caseId),
@@ -167,6 +170,31 @@ export const caseEvents = pgTable('case_events', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (table) => [index('case_events_case_id_idx').on(table.caseId), index('case_events_created_at_idx').on(table.createdAt)]);
 
+export const caseSimilarityProfiles = pgTable('case_similarity_profiles', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  caseId: uuid('case_id').references(() => cases.id, { onDelete: 'cascade' }).unique(),
+  syntheticKey: text('synthetic_key').unique(),
+  isSynthetic: boolean('is_synthetic').notNull().default(false),
+  sharingEligible: boolean('sharing_eligible').notNull().default(false),
+  canonicalVersion: text('canonical_version').notNull(),
+  structuredSignature: text('structured_signature').notNull(),
+  petType: text('pet_type').notNull(),
+  primaryFactor: text('primary_factor').notNull(),
+  contributingFactors: jsonb('contributing_factors').$type<string[]>().notNull().default([]),
+  constraintKeys: jsonb('constraint_keys').$type<string[]>().notNull().default([]),
+  pathKey: text('path_key').notNull(),
+  blockerCategories: jsonb('blocker_categories').$type<string[]>().notNull().default([]),
+  interventionCategories: jsonb('intervention_categories').$type<string[]>().notNull().default([]),
+  outcomeCategory: text('outcome_category').notNull().default('UNKNOWN'),
+  embedding: vector('embedding', { dimensions: 32 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('case_similarity_profiles_eligibility_idx').on(table.sharingEligible, table.isSynthetic),
+  index('case_similarity_profiles_pet_factor_idx').on(table.petType, table.primaryFactor),
+  index('case_similarity_profiles_embedding_idx').using('hnsw', table.embedding.op('vector_cosine_ops')),
+]);
+
 export type CaseRecord = typeof cases.$inferSelect;
 export type NewCase = typeof cases.$inferInsert;
 export type CaseFactorRecord = typeof caseFactors.$inferSelect;
@@ -180,3 +208,4 @@ export type UserRecord = typeof users.$inferSelect;
 export type PetRecord = typeof pets.$inferSelect;
 export type CaseActionRecord = typeof caseActions.$inferSelect;
 export type CaseEventRecord = typeof caseEvents.$inferSelect;
+export type CaseSimilarityProfileRecord = typeof caseSimilarityProfiles.$inferSelect;

@@ -1,11 +1,11 @@
-import { getCase, getCaseFactors } from './case-service';
-import { generateSmallestUnlock } from './counterfactual-service';
-import { generateRetentionPaths } from './path-service';
-import type { SupportedChangeCode } from '../counterfactual/domain';
-import type { GroundedExplanationPayload } from '../explanation/domain';
-import { deterministicExplanation } from '../explanation/fallback';
-import { generateGroundedExplanation } from '../explanation/groq';
-import type { ExplanationMode } from '../validation/explanation';
+import { getCase, getCaseFactors } from './case-service.js';
+import { generateSmallestUnlock } from './counterfactual-service.js';
+import { generateRetentionPaths } from './path-service.js';
+import type { SupportedChangeCode } from '../counterfactual/domain.js';
+import type { GroundedExplanationPayload } from '../explanation/domain.js';
+import { deterministicExplanation } from '../explanation/fallback.js';
+import { generateGroundedExplanation } from '../explanation/groq.js';
+import type { ExplanationMode } from '../validation/explanation.js';
 
 export class ExplanationPathNotFoundError extends Error {}
 

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { applySupportedChanges, exploreSmallestUnlock } from '../counterfactual/engine';
-import { demoSeedManifest, DEMO_SOURCE, buildLunaSolverFacts, syntheticDemoScenarios } from '../demo/scenarios';
-import { selectEvidenceForPath } from '../evidence/select';
-import { expectedProductionTables, verifyDeterministicCore } from '../production/verification';
-import { solveRetentionPaths } from '../retention-paths/solver';
-import { verifiedCatalogManifest } from '../services/seed-service';
+import { applySupportedChanges, exploreSmallestUnlock } from '../counterfactual/engine.js';
+import { demoSeedManifest, DEMO_SOURCE, buildLunaSolverFacts, syntheticDemoScenarios } from '../demo/scenarios.js';
+import { selectEvidenceForPath } from '../evidence/select.js';
+import { expectedProductionTables, verifyDeterministicCore } from '../production/verification.js';
+import { solveRetentionPaths } from '../retention-paths/solver.js';
+import { verifiedCatalogManifest } from '../services/seed-service.js';
 
 describe('production-safe synthetic demo contract', () => {
   it('identifies six unique scenarios as synthetic and persists none of them', () => {
@@ -62,7 +62,7 @@ describe('production-safe synthetic demo contract', () => {
   });
 
   it('runs the read-only production core checks and expects the complete schema', () => {
-    expect(expectedProductionTables).toHaveLength(9);
+    expect(expectedProductionTables).toHaveLength(12);
     expect(verifyDeterministicCore()).toMatchObject({
       pathStatuses: { remain_in_current_housing: 'CONDITIONAL', temporary_care_bridge: 'CONDITIONAL', move_with_pet: 'BLOCKED' },
       moveUnlockCodes: ['ALLOW_STAY_OR_MOVE', 'CONFIRM_PET_FRIENDLY_HOUSING', 'CONFIRM_MOVE_REQUIREMENTS'],

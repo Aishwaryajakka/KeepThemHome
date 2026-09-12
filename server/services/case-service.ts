@@ -1,13 +1,13 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
-import { getDatabase } from '../db';
-import { caseFactors, cases, outcomes, pets } from '../db/schema';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { getDatabase } from '../db.js';
+import { caseActions, caseEvents, caseFactors, cases, outcomes, pets } from '../db/schema.js';
 import type {
   CreateCaseInput,
   CreateFactorsInput,
   CreateOutcomeInput,
   UpdateCaseInput,
   CreateOwnedCaseInput,
-} from '../validation/case';
+} from '../validation/case.js';
 
 export const createCase = async (input: CreateCaseInput) => {
   const [created] = await getDatabase().insert(cases).values(input).returning();
@@ -17,7 +17,7 @@ export const createCase = async (input: CreateCaseInput) => {
 export const createOwnedCase = async (userId: string, pet: typeof pets.$inferSelect, input: CreateOwnedCaseInput) => {
   const db = getDatabase();
   const [existing] = await db.select().from(cases).where(and(
-    eq(cases.userId, userId), eq(cases.petId, pet.id), eq(cases.currentStatus, 'active'),
+    eq(cases.userId, userId), eq(cases.petId, pet.id), inArray(cases.currentStatus, ['ACTIVE', 'active', 'STILL_TRYING', 'still_trying']),
   )).orderBy(desc(cases.updatedAt)).limit(1);
   if (existing) return existing;
   const { petId: _petId, ...caseInput } = input;
@@ -41,7 +41,8 @@ export const listOwnedCases = async (userId: string) => {
   return Promise.all(latestPerPet.map(async ({ caseRecord, pet }) => {
     const factors = await getCaseFactors(caseRecord.id);
     const latestOutcomes = await getOutcomes(caseRecord.id);
-    return { case: caseRecord, pet, factors, latestOutcome: latestOutcomes[0] ?? null };
+    const actions = await getDatabase().select().from(caseActions).where(eq(caseActions.caseId, caseRecord.id));
+    return { case: caseRecord, pet, factors, latestOutcome: latestOutcomes[0] ?? null, activeActionCount: actions.filter(({ status }) => status === 'PLANNED' || status === 'IN_PROGRESS').length };
   }));
 };
 
@@ -84,12 +85,18 @@ export const getCaseFactors = async (caseId: string) =>
     .orderBy(desc(caseFactors.createdAt));
 
 export const addOutcome = async (caseId: string, input: CreateOutcomeInput) => {
-  const [created] = await getDatabase().insert(outcomes).values({ ...input, caseId })
+  const db = getDatabase();
+  const [created] = await db.insert(outcomes).values({ ...input, helpfulFactors: input.helpfulFactors ?? [], caseId })
     .onConflictDoUpdate({
       target: [outcomes.caseId, outcomes.status],
-      set: { unresolvedBarrier: input.unresolvedBarrier, notes: input.notes },
+      set: { unresolvedBarrier: input.unresolvedBarrier, notes: input.notes, helpfulFactors: input.helpfulFactors ?? [], createdAt: new Date() },
     })
     .returning();
+  const lifecycle = input.status === 'KEEPING_PET' ? 'KEEPING_PET' : input.status === 'REHOMING_SUPPORT_NEEDED' ? 'REHOMING_SUPPORT' : 'ACTIVE';
+  await db.update(cases).set({ currentStatus: lifecycle, updatedAt: new Date() }).where(eq(cases.id, caseId));
+  await db.insert(caseEvents).values({ caseId, eventType: 'OUTCOME_REPORTED', eventData: { outcomeCategory: input.status } });
+  const { refreshCaseSimilarityProfile } = await import('./similarity-service.js');
+  await refreshCaseSimilarityProfile(caseId);
   return created;
 };
 

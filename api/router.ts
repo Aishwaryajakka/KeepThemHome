@@ -1,1 +1,1 @@
-export { default } from '../server/api-router';
+export { default } from '../server/api-router.js';

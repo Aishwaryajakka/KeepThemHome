@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { describe, expect, it, vi } from 'vitest';
-import { createExplainHandler } from '../api-handlers/cases/[id]/explain';
+import { createExplainHandler } from '../api-handlers/cases/[id]/explain.js';
 
 const caseId = '550e8400-e29b-41d4-a716-446655440000';
 const owned = vi.fn(async () => ({ status: 'ok' as const, user: { id: 'user-a' }, caseRecord: { id: caseId } } as never));

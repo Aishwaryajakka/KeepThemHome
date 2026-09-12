@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, safeServerError } from '../http';
-import { resolveAppUser, type AppUserResolver } from '../services/auth-service';
+import { methodNotAllowed, safeServerError } from '../http.js';
+import { resolveAppUser, type AppUserResolver } from '../services/auth-service.js';
 
 export const createMeHandler = (resolveUser: AppUserResolver = resolveAppUser) => async (request: VercelRequest, response: VercelResponse) => {
   if (request.method !== 'GET') return methodNotAllowed(response, ['GET']);

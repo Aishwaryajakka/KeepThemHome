@@ -1,10 +1,10 @@
 import { and, asc, eq } from 'drizzle-orm';
-import { getDatabase } from '../db';
-import { caseActions, caseEvents } from '../db/schema';
-import { getActionDefinition, getOutcomeDefinition } from '../actions/catalog';
-import { addCaseFactors } from './case-service';
-import { generateRetentionPaths } from './path-service';
-import type { ActionStatus, NotPossibleReason } from '../actions/domain';
+import { getDatabase } from '../db.js';
+import { caseActions, caseEvents } from '../db/schema.js';
+import { getActionDefinition, getOutcomeDefinition } from '../actions/catalog.js';
+import { addCaseFactors } from './case-service.js';
+import { generateRetentionPaths } from './path-service.js';
+import type { ActionStatus, NotPossibleReason } from '../actions/domain.js';
 
 export const listCaseActions = (caseId: string) => getDatabase().select().from(caseActions).where(eq(caseActions.caseId, caseId)).orderBy(asc(caseActions.createdAt));
 export const listCaseEvents = (caseId: string) => getDatabase().select().from(caseEvents).where(eq(caseEvents.caseId, caseId)).orderBy(asc(caseEvents.createdAt));

@@ -1,6 +1,6 @@
-import type { SupportedChangeCode } from '../counterfactual/domain';
-import { selectEvidenceForPath } from '../evidence/select';
-import { generateRetentionPaths, loadNormalizedHousingCase } from './path-service';
+import type { SupportedChangeCode } from '../counterfactual/domain.js';
+import { selectEvidenceForPath } from '../evidence/select.js';
+import { generateRetentionPaths, loadNormalizedHousingCase } from './path-service.js';
 
 export class EvidencePathNotFoundError extends Error {}
 

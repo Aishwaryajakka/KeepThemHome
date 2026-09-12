@@ -1,5 +1,5 @@
-import { retentionPathCatalog } from '../retention-paths/catalog';
-import type { ActionDefinition } from './domain';
+import { retentionPathCatalog } from '../retention-paths/catalog.js';
+import type { ActionDefinition } from './domain.js';
 
 const outcomeLabels = (fact: ActionDefinition['relatedFact']) => [
   { key: `${fact.toUpperCase()}_CONFIRMED`, label: 'The needed support or change is confirmed', factValue: true as const },
@@ -11,11 +11,12 @@ const outcomeLabels = (fact: ActionDefinition['relatedFact']) => [
 export const actionCatalog: ActionDefinition[] = retentionPathCatalog.flatMap((path) => path.steps.slice(0, 1).map((step) => {
   const requirement = path.requirements[0];
   const housingContact = path.key === 'remain_in_current_housing';
+  const relatedFact = housingContact ? 'housingResolutionPossible' : requirement.fact;
   return {
     key: housingContact ? 'contact_landlord' : step.key,
     pathKey: path.key,
     interventionKey: step.interventionKey,
-    relatedFact: requirement.fact,
+    relatedFact,
     title: housingContact ? 'Contact landlord or property manager' : step.title,
     description: housingContact ? 'Ask for the exact restriction and whether a documented resolution would allow your pet to stay.' : step.description,
     outcomes: housingContact ? [
@@ -23,7 +24,7 @@ export const actionCatalog: ActionDefinition[] = retentionPathCatalog.flatMap((p
       { key: 'LANDLORD_CONTACT_DENIED', label: 'They said my pet cannot stay', factValue: false as const },
       { key: 'LANDLORD_CONTACT_PENDING', label: 'I’m waiting for a decision' },
       { key: 'LANDLORD_CONTACT_OTHER', label: 'Something else happened' },
-    ] : outcomeLabels(requirement.fact),
+    ] : outcomeLabels(relatedFact),
   };
 }));
 

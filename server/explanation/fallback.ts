@@ -1,5 +1,5 @@
-import type { GroundedExplanationPayload } from './domain';
-import type { ExplanationOutput } from '../validation/explanation';
+import type { GroundedExplanationPayload } from './domain.js';
+import type { ExplanationOutput } from '../validation/explanation.js';
 
 export const deterministicExplanation = (payload: GroundedExplanationPayload): ExplanationOutput => {
   const { selectedPath: path } = payload;

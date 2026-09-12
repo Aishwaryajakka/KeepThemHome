@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { goalSchema, primaryBarrierSchema, urgencySchema } from './case';
-import { pathKeySchema } from './counterfactual';
+import { goalSchema, primaryBarrierSchema, urgencySchema } from './case.js';
+import { pathKeySchema } from './counterfactual.js';
 
 export const evidencePreviewSchema = z.object({
   pathKey: pathKeySchema,

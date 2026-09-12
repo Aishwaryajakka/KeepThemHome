@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { pathKeySchema, supportedChangeCodeSchema } from './counterfactual';
+import { pathKeySchema, supportedChangeCodeSchema } from './counterfactual.js';
 
 export const explanationModeSchema = z.enum([
   'PATH_SUMMARY',

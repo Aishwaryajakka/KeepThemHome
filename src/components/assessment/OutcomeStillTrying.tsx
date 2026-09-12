@@ -27,7 +27,7 @@ export const OutcomeStillTrying: React.FC<OutcomeStillTryingProps> = ({
           Let’s keep working on it.
         </h1>
         <p className="font-sans text-base sm:text-lg text-[#2D2D2D]/80 leading-relaxed text-pretty">
-          Sometimes the first option doesn’t solve the whole problem. You can revisit your plan or explore another path.
+          Keep working from the current plan. You can revisit unresolved blockers, active actions, resources, or another path.
         </p>
       </div>
 

@@ -5,7 +5,7 @@ import {
   createOutcomeSchema,
   updateCaseSchema,
   uuidSchema,
-} from '../validation/case';
+} from '../validation/case.js';
 
 describe('case API contracts', () => {
   it('accepts valid case, factor, and outcome payloads', () => {
@@ -17,7 +17,9 @@ describe('case API contracts', () => {
       role: 'contributing',
       source: 'structured',
     }] }).success).toBe(true);
-    expect(createOutcomeSchema.safeParse({ status: 'keeping' }).success).toBe(true);
+    expect(createOutcomeSchema.safeParse({ status: 'KEEPING_PET', helpfulFactors: ['HOUSING_RESOLUTION'] }).success).toBe(true);
+    expect(createOutcomeSchema.safeParse({ status: 'SUCCESS' }).success).toBe(false);
+    expect(createOutcomeSchema.safeParse({ status: 'KEEPING_PET', helpfulFactors: ['free text'] }).success).toBe(false);
   });
 
   it('rejects malformed and invalid enum-like payloads', () => {

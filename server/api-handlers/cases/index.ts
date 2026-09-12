@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { methodNotAllowed, parseBody, safeServerError } from '../../http';
-import { resolveAppUser, type AppUserResolver } from '../../services/auth-service';
-import { createOwnedCase, listOwnedCases } from '../../services/case-service';
-import { getOwnedPet } from '../../services/ownership-service';
-import { createOwnedCaseSchema } from '../../validation/case';
+import { methodNotAllowed, parseBody, safeServerError } from '../../http.js';
+import { resolveAppUser, type AppUserResolver } from '../../services/auth-service.js';
+import { createOwnedCase, listOwnedCases } from '../../services/case-service.js';
+import { getOwnedPet } from '../../services/ownership-service.js';
+import { createOwnedCaseSchema } from '../../validation/case.js';
 
 export const createCasesHandler = (resolveUser: AppUserResolver = resolveAppUser, services = { createOwnedCase, listOwnedCases, getOwnedPet }) => async (request: VercelRequest, response: VercelResponse) => {
   if (!['GET', 'POST'].includes(request.method ?? '')) return methodNotAllowed(response, ['GET', 'POST']);

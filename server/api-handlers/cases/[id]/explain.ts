@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { UnsupportedCounterfactualError } from '../../../counterfactual/catalog';
-import { methodNotAllowed, parseBody, safeServerError } from '../../../http';
-import { ExplanationPathNotFoundError, explainCasePath } from '../../../services/explanation-service';
-import { uuidSchema } from '../../../validation/case';
-import { explanationRequestSchema } from '../../../validation/explanation';
-import { resolveOwnedCase, type OwnedCaseResolver } from '../../../services/ownership-service';
+import { UnsupportedCounterfactualError } from '../../../counterfactual/catalog.js';
+import { methodNotAllowed, parseBody, safeServerError } from '../../../http.js';
+import { ExplanationPathNotFoundError, explainCasePath } from '../../../services/explanation-service.js';
+import { uuidSchema } from '../../../validation/case.js';
+import { explanationRequestSchema } from '../../../validation/explanation.js';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../services/ownership-service.js';
 
 type Explainer = typeof explainCasePath;
 

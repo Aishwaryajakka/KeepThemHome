@@ -94,4 +94,14 @@ describe('My Pets continuation dashboard', () => {
     expect(screen.getByText('2 blockers remaining')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Continue Luna’s plan/ })).toBeInTheDocument();
   });
+
+  it('shows a reported keeping outcome without presenting the case as urgent', async () => {
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([{ ...savedLuna, case: { ...savedLuna.case, currentStatus: 'KEEPING_PET' }, latestOutcome: { id: 'outcome-1', caseId: savedLuna.case.id, status: 'KEEPING_PET', unresolvedBarrier: null, notes: null, helpfulFactors: ['HOUSING_RESOLUTION'], createdAt: '2026-09-12T00:00:00.000Z' } }] as never);
+    vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('not needed'));
+    renderPage();
+    expect(await screen.findByText('Keeping pet')).toBeInTheDocument();
+    expect(screen.getByText('Luna is staying home')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /View plan history/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'How are things with Luna?' })).toBeInTheDocument();
+  });
 });

@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "/api/router?path=:path"
+    },
+    {
+      "source": "/:path*",
+      "destination": "/index.html"
     }
   ]
 }

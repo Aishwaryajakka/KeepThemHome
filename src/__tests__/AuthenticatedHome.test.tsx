@@ -37,4 +37,13 @@ describe('authenticated home', () => {
     await user.click(screen.getByRole('button', { name: 'Continue Luna’s plan' }));
     expect(onContinue).toHaveBeenCalledWith('case-1');
   });
+
+  it('shows a keeping outcome as history rather than urgent work', async () => {
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([{ ...savedLuna, latestOutcome: { id: 'outcome-1', caseId: 'case-1', status: 'KEEPING_PET', unresolvedBarrier: null, notes: null, helpfulFactors: [], createdAt: '2026-09-12T00:00:00.000Z' } }] as never);
+    vi.spyOn(caseApi, 'getRetentionPaths').mockResolvedValue({ caseId: 'case-1', facts: { primaryBarrier: 'housing', situation: null, urgency: null, goal: null, behaviorContributor: false, costConstraint: null }, appliedChanges: [], paths: [] });
+    render(<AuthenticatedHome active onStart={vi.fn()} onContinue={vi.fn()} onViewAll={vi.fn()} />);
+    expect(await screen.findByText('Luna is staying home')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /View plan history/ })).toBeInTheDocument();
+    expect(screen.queryByText('0 next steps')).not.toBeInTheDocument();
+  });
 });

@@ -1,8 +1,8 @@
 import { and, eq } from 'drizzle-orm';
-import { getDatabase } from '../db';
-import { cases, pets } from '../db/schema';
+import { getDatabase } from '../db.js';
+import { cases, pets } from '../db/schema.js';
 import type { VercelRequest } from '@vercel/node';
-import { resolveAppUser } from './auth-service';
+import { resolveAppUser } from './auth-service.js';
 
 export const getOwnedPet = async (userId: string, petId: string) => {
   const [pet] = await getDatabase().select().from(pets)

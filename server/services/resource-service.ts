@@ -1,6 +1,6 @@
 import { and, asc, eq } from 'drizzle-orm';
-import { getDatabase } from '../db';
-import { resources } from '../db/schema';
+import { getDatabase } from '../db.js';
+import { resources } from '../db/schema.js';
 
 export type ResourceCategory = 'housing-search' | 'financial-support' | 'temporary-care' | 'general-support';
 

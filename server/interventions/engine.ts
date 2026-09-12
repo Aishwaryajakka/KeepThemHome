@@ -1,4 +1,4 @@
-import { interventionCatalog, type InterventionKey } from './catalog';
+import { interventionCatalog, type InterventionKey } from './catalog.js';
 
 export type HousingFacts = {
   primaryBarrier: 'housing';

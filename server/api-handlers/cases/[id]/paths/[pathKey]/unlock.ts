@@ -1,10 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { UnsupportedCounterfactualError } from '../../../../../counterfactual/catalog';
-import { methodNotAllowed, parseBody, safeServerError } from '../../../../../http';
-import { generateSmallestUnlock } from '../../../../../services/counterfactual-service';
-import { uuidSchema } from '../../../../../validation/case';
-import { hypotheticalChangesSchema, pathKeySchema } from '../../../../../validation/counterfactual';
-import { resolveOwnedCase, type OwnedCaseResolver } from '../../../../../services/ownership-service';
+import { UnsupportedCounterfactualError } from '../../../../../counterfactual/catalog.js';
+import { methodNotAllowed, parseBody, safeServerError } from '../../../../../http.js';
+import { generateSmallestUnlock } from '../../../../../services/counterfactual-service.js';
+import { uuidSchema } from '../../../../../validation/case.js';
+import { hypotheticalChangesSchema, pathKeySchema } from '../../../../../validation/counterfactual.js';
+import { resolveOwnedCase, type OwnedCaseResolver } from '../../../../../services/ownership-service.js';
 
 type UnlockGenerator = typeof generateSmallestUnlock;
 

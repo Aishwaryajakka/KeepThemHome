@@ -1,17 +1,17 @@
 import { and, asc, eq } from 'drizzle-orm';
-import { getDatabase } from '../db';
+import { getDatabase } from '../db.js';
 import {
   caseFactors,
   cases,
   interventionResources,
   interventions,
   resources,
-} from '../db/schema';
-import { normalizeHousingCase } from '../retention-paths/normalize';
-import { solveRetentionPaths } from '../retention-paths/solver';
-import { applySupportedChanges } from '../counterfactual/engine';
-import { materializeSupportedChanges } from '../counterfactual/catalog';
-import type { SupportedChangeCode } from '../counterfactual/domain';
+} from '../db/schema.js';
+import { normalizeHousingCase } from '../retention-paths/normalize.js';
+import { solveRetentionPaths } from '../retention-paths/solver.js';
+import { applySupportedChanges } from '../counterfactual/engine.js';
+import { materializeSupportedChanges } from '../counterfactual/catalog.js';
+import type { SupportedChangeCode } from '../counterfactual/domain.js';
 
 export const loadNormalizedHousingCase = async (caseId: string) => {
   const db = getDatabase();

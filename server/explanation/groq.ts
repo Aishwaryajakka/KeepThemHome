@@ -1,8 +1,8 @@
-import { ExtractionFailedError, ProviderUnavailableError } from '../intake/groq';
-import { explanationJsonSchema, explanationOutputSchema, type ExplanationOutput } from '../validation/explanation';
-import type { GroundedExplanationPayload } from './domain';
-import { isGroundedExplanation } from './grounding';
-import { explanationSystemPrompt } from './prompt';
+import { ExtractionFailedError, ProviderUnavailableError } from '../intake/groq.js';
+import { explanationJsonSchema, explanationOutputSchema, type ExplanationOutput } from '../validation/explanation.js';
+import type { GroundedExplanationPayload } from './domain.js';
+import { isGroundedExplanation } from './grounding.js';
+import { explanationSystemPrompt } from './prompt.js';
 
 export const generateGroundedExplanation = async (
   payload: GroundedExplanationPayload,

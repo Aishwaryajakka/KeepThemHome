@@ -6,10 +6,11 @@ export const petTypeSchema = z.enum(['dog', 'cat', 'other']);
 export const primaryBarrierSchema = z.enum(['housing', 'behavior', 'cost', 'medical', 'temporary_crisis', 'time_capacity', 'circumstances']);
 export const urgencySchema = z.enum(['Today or within 48 hours', 'This week', 'Within a month', 'I’m planning ahead']);
 export const goalSchema = z.enum(['Stay where I am', 'Move', 'Either could work']);
-export const caseStatusSchema = z.enum(['active', 'keeping', 'still_trying', 'rehoming_help', 'closed']);
+export const caseStatusSchema = z.enum(['ACTIVE', 'KEEPING_PET', 'REHOMING_SUPPORT', 'ARCHIVED', 'active', 'keeping', 'still_trying', 'rehoming_help', 'closed']);
 export const factorRoleSchema = z.enum(['primary', 'contributing', 'constraint']);
 export const factorSourceSchema = z.enum(['structured', 'ai']);
-export const outcomeStatusSchema = z.enum(['keeping', 'still_trying', 'rehoming_help']);
+export const outcomeStatusSchema = z.enum(['KEEPING_PET', 'STILL_TRYING', 'REHOMING_SUPPORT_NEEDED']);
+export const helpfulFactorSchema = z.enum(['HOUSING_RESOLUTION', 'BEHAVIOR_SUPPORT', 'FINANCIAL_SUPPORT', 'VETERINARY_SUPPORT', 'TEMPORARY_CARE', 'TRUSTED_NETWORK', 'ROUTINE_CHANGE', 'OTHER']);
 
 export const createCaseSchema = z.object({
   petName: z.string().trim().min(1).max(100),
@@ -56,6 +57,7 @@ export const createOutcomeSchema = z.object({
   status: outcomeStatusSchema,
   unresolvedBarrier: z.string().trim().max(500).nullable().optional(),
   notes: z.string().trim().max(2000).nullable().optional(),
+  helpfulFactors: z.array(helpfulFactorSchema).max(8).optional(),
 }).strict();
 
 export type CreateCaseInput = z.infer<typeof createCaseSchema>;

@@ -1,7 +1,7 @@
 import type { VercelRequest } from '@vercel/node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getAuthenticatedIdentity } from '../auth/clerk';
-import { getOrCreateAppUser } from '../services/auth-service';
+import { getAuthenticatedIdentity } from '../auth/clerk.js';
+import { getOrCreateAppUser } from '../services/auth-service.js';
 
 describe('Clerk identity and internal user boundary', () => {
   afterEach(() => vi.unstubAllEnvs());

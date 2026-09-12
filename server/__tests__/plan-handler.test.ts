@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../services/plan-service', () => ({ generateCasePlan: vi.fn() }));
 
-import { createPlanHandler } from '../api-handlers/cases/[id]/plan';
-import { generateCasePlan } from '../services/plan-service';
+import { createPlanHandler } from '../api-handlers/cases/[id]/plan.js';
+import { generateCasePlan } from '../services/plan-service.js';
 
 const responseDouble = () => {
   const json = vi.fn();

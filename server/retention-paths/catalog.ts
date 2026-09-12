@@ -1,4 +1,4 @@
-import type { RetentionPathDefinition } from './domain';
+import type { RetentionPathDefinition } from './domain.js';
 
 const domainPath = (
   domain: string,

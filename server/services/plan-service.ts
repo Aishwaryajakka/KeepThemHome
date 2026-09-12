@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { and, asc, eq, ne, sql } from 'drizzle-orm';
-import { getDatabase } from '../db';
+import { getDatabase } from '../db.js';
 import {
   caseFactors,
   cases,
@@ -8,8 +8,8 @@ import {
   interventions,
   recommendations,
   resources,
-} from '../db/schema';
-import { rankHousingInterventions } from '../interventions/engine';
+} from '../db/schema.js';
+import { rankHousingInterventions } from '../interventions/engine.js';
 
 export const generateCasePlan = async (caseId: string) => {
   const db = getDatabase();

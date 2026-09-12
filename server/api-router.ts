@@ -1,22 +1,23 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import meHandler from './api-handlers/me';
-import petsHandler from './api-handlers/pets';
-import petHandler from './api-handlers/pets/[id]';
-import casesHandler from './api-handlers/cases';
-import caseHandler from './api-handlers/cases/[id]';
-import factorsHandler from './api-handlers/cases/[id]/factors';
-import outcomesHandler from './api-handlers/cases/[id]/outcomes';
-import planHandler from './api-handlers/cases/[id]/plan';
-import pathsHandler from './api-handlers/cases/[id]/paths';
-import unlockHandler from './api-handlers/cases/[id]/paths/[pathKey]/unlock';
-import explainHandler from './api-handlers/cases/[id]/explain';
-import evidenceHandler from './api-handlers/cases/[id]/paths/[pathKey]/evidence';
-import intakeHandler from './api-handlers/intake/extract';
-import resourcesHandler from './api-handlers/resources';
-import evidencePreviewHandler from './api-handlers/evidence/preview';
-import actionsHandler from './api-handlers/cases/[id]/actions';
-import actionHandler from './api-handlers/cases/[id]/actions/[actionId]';
-import actionOutcomeHandler from './api-handlers/cases/[id]/actions/[actionId]/outcome';
+import meHandler from './api-handlers/me.js';
+import petsHandler from './api-handlers/pets.js';
+import petHandler from './api-handlers/pets/[id].js';
+import casesHandler from './api-handlers/cases.js';
+import caseHandler from './api-handlers/cases/[id].js';
+import factorsHandler from './api-handlers/cases/[id]/factors.js';
+import outcomesHandler from './api-handlers/cases/[id]/outcomes.js';
+import planHandler from './api-handlers/cases/[id]/plan.js';
+import pathsHandler from './api-handlers/cases/[id]/paths.js';
+import unlockHandler from './api-handlers/cases/[id]/paths/[pathKey]/unlock.js';
+import explainHandler from './api-handlers/cases/[id]/explain.js';
+import evidenceHandler from './api-handlers/cases/[id]/paths/[pathKey]/evidence.js';
+import intakeHandler from './api-handlers/intake/extract.js';
+import resourcesHandler from './api-handlers/resources.js';
+import evidencePreviewHandler from './api-handlers/evidence/preview.js';
+import actionsHandler from './api-handlers/cases/[id]/actions.js';
+import actionHandler from './api-handlers/cases/[id]/actions/[actionId].js';
+import actionOutcomeHandler from './api-handlers/cases/[id]/actions/[actionId]/outcome.js';
+import similarHandler from './api-handlers/cases/[id]/similar.js';
 
 export type ApiHandler = (request: VercelRequest, response: VercelResponse) => unknown;
 
@@ -36,9 +37,10 @@ export interface ApiHandlers {
   intake: ApiHandler;
   resources: ApiHandler;
   evidencePreview: ApiHandler;
-  actions: ApiHandler;
-  action: ApiHandler;
-  actionOutcome: ApiHandler;
+  actions?: ApiHandler;
+  action?: ApiHandler;
+  actionOutcome?: ApiHandler;
+  similar?: ApiHandler;
 }
 
 const defaultHandlers: ApiHandlers = {
@@ -60,6 +62,7 @@ const defaultHandlers: ApiHandlers = {
   actions: actionsHandler,
   action: actionHandler,
   actionOutcome: actionOutcomeHandler,
+  similar: similarHandler,
 };
 
 const routePath = (request: VercelRequest) => {
@@ -115,11 +118,13 @@ export const createApiRouter = (handlers: ApiHandlers = defaultHandlers) => asyn
   }
 
   match = /^cases\/([^/]+)\/actions$/.exec(path);
-  if (match) { withParams(request, { id: decodeURIComponent(match[1]) }); return handlers.actions(request, response); }
+  if (match && handlers.actions) { withParams(request, { id: decodeURIComponent(match[1]) }); return handlers.actions(request, response); }
   match = /^cases\/([^/]+)\/actions\/([^/]+)$/.exec(path);
-  if (match) { withParams(request, { id: decodeURIComponent(match[1]), actionId: decodeURIComponent(match[2]) }); return handlers.action(request, response); }
+  if (match && handlers.action) { withParams(request, { id: decodeURIComponent(match[1]), actionId: decodeURIComponent(match[2]) }); return handlers.action(request, response); }
   match = /^cases\/([^/]+)\/actions\/([^/]+)\/outcome$/.exec(path);
-  if (match) { withParams(request, { id: decodeURIComponent(match[1]), actionId: decodeURIComponent(match[2]) }); return handlers.actionOutcome(request, response); }
+  if (match && handlers.actionOutcome) { withParams(request, { id: decodeURIComponent(match[1]), actionId: decodeURIComponent(match[2]) }); return handlers.actionOutcome(request, response); }
+  match = /^cases\/([^/]+)\/similar$/.exec(path);
+  if (match && handlers.similar) { withParams(request, { id: decodeURIComponent(match[1]) }); return handlers.similar(request, response); }
 
   return response.status(404).json({ error: 'API route not found' });
 };

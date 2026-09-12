@@ -1,8 +1,8 @@
 import { count, inArray, sql } from 'drizzle-orm';
-import { supportResources } from '../../src/data/resources';
-import { getDatabase } from '../db';
-import { interventionResources, interventions, resources } from '../db/schema';
-import { interventionCatalog, interventionResourceSlugs } from '../interventions/catalog';
+import { supportResources } from '../../src/data/resources.js';
+import { getDatabase } from '../db.js';
+import { interventionResources, interventions, resources } from '../db/schema.js';
+import { interventionCatalog, interventionResourceSlugs } from '../interventions/catalog.js';
 
 export const verifiedCatalogManifest = () => {
   const resourceSlugs = supportResources.map(({ id }) => id);

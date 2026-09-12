@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeHousingCase } from '../retention-paths/normalize';
-import { solveRetentionPaths } from '../retention-paths/solver';
-import type { NormalizedHousingCase } from '../retention-paths/domain';
-import type { RetentionPathDefinition } from '../retention-paths/domain';
+import { normalizeHousingCase } from '../retention-paths/normalize.js';
+import { solveRetentionPaths } from '../retention-paths/solver.js';
+import type { NormalizedHousingCase } from '../retention-paths/domain.js';
+import type { RetentionPathDefinition } from '../retention-paths/domain.js';
 
 const luna = normalizeHousingCase(
   { primaryBarrier: 'housing', urgency: 'This week', goal: 'Stay where I am' },
