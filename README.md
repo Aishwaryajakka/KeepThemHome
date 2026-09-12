@@ -157,7 +157,7 @@ Or, more simply:
 
 ---
 
-# 🔓 Smallest Unlock
+#  Smallest Unlock
 
 The centerpiece of Keep Them Home is **Smallest Unlock**.
 
@@ -770,7 +770,7 @@ The goal is to make sure realistic alternatives have been understood first.
 
 ---
 
-# 🧪 Design Principles
+#  Design Principles
 
 Several distinctions are fundamental to the system:
 
