@@ -64,6 +64,13 @@ describe('Groq extraction boundary', () => {
     expect(body.response_format.json_schema.schema.properties.contributingBarriers).not.toHaveProperty('uniqueItems');
   });
 
+  it('accepts a valid structured response wrapped in a markdown JSON fence', async () => {
+    const providerFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      choices: [{ message: { content: `\`\`\`json\n${JSON.stringify(lunaExtraction)}\n\`\`\`` } }],
+    }), { status: 200 }));
+    await expect(extractIntake('story', { fetch: providerFetch, apiKey: 'key', model: 'model' })).resolves.toEqual(lunaExtraction);
+  });
+
   it('sanitizes malformed and failed provider responses without retrying', async () => {
     const malformedFetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: '{}' } }] }), { status: 200 }));
     await expect(extractIntake('story', { fetch: malformedFetch, apiKey: 'key', model: 'model' })).rejects.toBeInstanceOf(ExtractionFailedError);

@@ -47,4 +47,14 @@ describe('core intake interactions', () => {
     expect(screen.getAllByRole('radio')).toHaveLength(3);
     expect(screen.getAllByRole('radio').every((choice) => !(choice as HTMLInputElement).checked)).toBe(true);
   });
+
+  it('shows provider failure as a guided fallback rather than an empty successful extraction', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'intake_extraction_unavailable' }), { status: 503 })));
+    const user = userEvent.setup();
+    render(<PetInfoScreen petName="" petType="" onNameChange={vi.fn()} onTypeSelect={vi.fn()} onContinue={vi.fn()} onBack={vi.fn()} onIntakeConfirm={vi.fn()} />);
+    await user.type(screen.getByRole('textbox', { name: 'Tell us what’s happening' }), 'Luna needs help.');
+    await user.click(screen.getByRole('button', { name: 'See what we understood' }));
+    expect(await screen.findByText('We couldn’t fully interpret that. You can answer a few questions instead.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Here’s what we understood.' })).not.toBeInTheDocument();
+  });
 });

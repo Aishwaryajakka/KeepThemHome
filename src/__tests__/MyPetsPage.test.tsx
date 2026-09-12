@@ -128,7 +128,7 @@ describe('My Pets continuation dashboard', () => {
     vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('not needed'));
     const deletePet = vi.spyOn(caseApi, 'deletePet').mockResolvedValue({ deleted: true, petId: 'pet-1' });
     renderPage();
-    await user.click(await screen.findByRole('button', { name: 'Edit Pet' }));
+    await user.click(await screen.findByText('Delete Pet'));
     await user.click(screen.getByRole('button', { name: 'Delete Luna' }));
     expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("delete Luna's saved cases and progress"));
     expect(deletePet).toHaveBeenCalledWith('pet-1');

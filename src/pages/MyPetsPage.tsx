@@ -103,9 +103,9 @@ export default function MyPetsPage() {
     } catch { setPetMutationStatus('error'); }
   };
 
-  const deletePet = async () => {
-    if (!editingPetId || petMutationStatus === 'saving') return;
-    const pet = pets.find(({ id }) => id === editingPetId);
+  const deletePet = async (petId = editingPetId) => {
+    if (!petId || petMutationStatus === 'saving') return;
+    const pet = pets.find(({ id }) => id === petId);
     if (!pet || !window.confirm(`Delete ${pet.name}?\n\nThis will remove ${pet.name} from your profile. This will also delete ${pet.name}'s saved cases and progress.`)) return;
     setPetMutationStatus('saving');
     try {
@@ -149,6 +149,6 @@ export default function MyPetsPage() {
       })}
       <div className="md:col-span-2"><Button variant="outline" className="border-[#2E5440] text-[#2E5440]" onClick={() => navigate('/')}>Find options for another pet</Button></div>
     </div>}
-    {auth.signedIn && status === 'ready' && editingPetId && <Button type="button" variant="destructive" disabled={petMutationStatus === 'saving'} onClick={() => void deletePet()} className="mt-3">Delete {pets.find(({ id }) => id === editingPetId)?.name ?? 'pet'}</Button>}
+    {auth.signedIn && status === 'ready' && pets.length > 0 && <details className="mt-8 rounded-2xl border border-[var(--border-warm)] bg-white/60 p-4"><summary className="brand-focus cursor-pointer rounded text-sm font-semibold text-[var(--text-muted)]">Delete Pet</summary><p className="mt-3 text-sm text-[var(--text-muted)]">Choose a pet to remove. You’ll be asked to confirm before anything is deleted.</p><div className="mt-3 flex flex-wrap gap-2">{pets.map((pet) => <Button key={pet.id} type="button" variant="outline" disabled={petMutationStatus === 'saving'} onClick={() => void deletePet(pet.id)} className="border-red-300 text-red-800 hover:bg-red-50">Delete {pet.name}</Button>)}</div></details>}
   </main><Footer variant="product" /></div>;
 }

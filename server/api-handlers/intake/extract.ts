@@ -8,6 +8,7 @@ export const createIntakeHandler = (extract = extractIntake) => async (
   request: VercelRequest,
   response: VercelResponse,
 ) => {
+  console.info(`[intake] route_reached=true method=${request.method ?? 'missing'} handler=intake_extract`);
   if (request.method !== 'POST') return methodNotAllowed(response, ['POST']);
   const parsed = parseBody(request, intakeRequestSchema);
   if (!parsed.success) return response.status(400).json({ error: 'Invalid request', issues: parsed.error.flatten() });

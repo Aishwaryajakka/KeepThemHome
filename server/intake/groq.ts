@@ -21,13 +21,21 @@ const groqResponseSchema = z.object({
   })).min(1),
 }).passthrough();
 
+const parseProviderJson = (content: string) => {
+  const trimmed = content.trim();
+  const unfenced = trimmed.startsWith('```')
+    ? trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '')
+    : trimmed;
+  return JSON.parse(unfenced) as unknown;
+};
+
 export const extractIntake = async (
   text: string,
   options: { fetch?: typeof fetch; apiKey?: string; model?: string } = {},
 ): Promise<IntakeExtraction> => {
   const apiKey = options.apiKey ?? process.env.GROQ_API_KEY;
   const model = options.model ?? process.env.GROQ_MODEL;
-  console.info(`[intake] groq_key_present=${Boolean(apiKey)} model_present=${Boolean(model)}`);
+  console.info(`[intake] groq_key_present=${Boolean(apiKey)} model_present=${Boolean(model)} model=${model || 'missing'}`);
   if (!apiKey || !model) throw new ProviderUnavailableError('Natural-language intake is not configured');
 
   let response: Response;
@@ -59,9 +67,12 @@ export const extractIntake = async (
 
   try {
     const envelope = groqResponseSchema.parse(await response.json());
-    return intakeExtractionSchema.parse(JSON.parse(envelope.choices[0].message.content));
+    return intakeExtractionSchema.parse(parseProviderJson(envelope.choices[0].message.content));
   } catch (error) {
-    console.error(`[intake] failure_stage=response_validation error_name=${error instanceof Error ? error.name : 'UnknownError'}`);
+    const failureType = error instanceof z.ZodError
+      ? `schema:${error.issues.slice(0, 4).map((issue) => `${issue.path.join('.') || 'root'}:${issue.code}`).join(',')}`
+      : error instanceof SyntaxError ? 'json_syntax' : 'unknown';
+    console.error(`[intake] failure_stage=response_validation error_name=${error instanceof Error ? error.name : 'UnknownError'} failure_type=${failureType}`);
     throw new ExtractionFailedError('The extraction response was invalid');
   }
 };

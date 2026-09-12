@@ -172,13 +172,17 @@ export const HomePage: React.FC = () => {
       window.dispatchEvent(new Event(SAVED_PLANS_CHANGED_EVENT));
       setSaveStatus('saved');
       setSaveRequested(false);
+      if (demo.active) {
+        demo.reset();
+        navigate(`/pets/${saved.pet.id}/cases/${saved.case.id}`, { replace: true });
+      }
     } catch {
       setSaveStatus('error');
       setSaveRequested(false);
     } finally {
       saveInFlight.current = false;
     }
-  }, [auth.serverReady, caseState, retainBackendCaseId]);
+  }, [auth.serverReady, caseState, demo, navigate, retainBackendCaseId]);
 
   useEffect(() => {
     if (saveRequested && auth.serverReady && saveStatus !== 'saving') void saveCurrentPlan();
