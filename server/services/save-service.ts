@@ -1,9 +1,9 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
-import { getDatabase } from '../db.js';
+import { getTransactionalDatabase } from '../db.js';
 import { caseFactors, cases, pets } from '../db/schema.js';
 import type { SaveCaseInput } from '../validation/case.js';
 
-export const saveOwnedAssessment = async (userId: string, input: SaveCaseInput) => getDatabase().transaction(async (tx) => {
+export const saveOwnedAssessment = async (userId: string, input: SaveCaseInput) => getTransactionalDatabase().transaction(async (tx) => {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${userId}))`);
 
   let pet: typeof pets.$inferSelect | undefined;

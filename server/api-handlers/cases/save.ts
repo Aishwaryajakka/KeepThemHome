@@ -3,6 +3,7 @@ import { methodNotAllowed, parseBody, safeServerError } from '../../http.js';
 import { resolveAppUser, type AppUserResolver } from '../../services/auth-service.js';
 import { saveOwnedAssessment } from '../../services/save-service.js';
 import { saveCaseSchema } from '../../validation/case.js';
+import { safeErrorDetails } from '../../auth/diagnostics.js';
 
 export const createSaveCaseHandler = (
   resolveUser: AppUserResolver = resolveAppUser,
@@ -18,7 +19,9 @@ export const createSaveCaseHandler = (
     return result
       ? response.status(200).json(result)
       : response.status(404).json({ error: 'Case not found' });
-  } catch {
+  } catch (error) {
+    const details = safeErrorDetails(error);
+    console.error(`[save] failure error_name=${details.name}${details.code ? ` error_code=${details.code}` : ''}`);
     return safeServerError(response);
   }
 };
