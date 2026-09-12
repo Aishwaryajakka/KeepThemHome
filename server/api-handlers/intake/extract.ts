@@ -19,7 +19,7 @@ export const createIntakeHandler = (extract = extractIntake) => async (
       return response.status(503).json({ error: 'Automatic intake is unavailable. Continue with the guided questions.' });
     }
     if (error instanceof ExtractionFailedError) {
-      return response.status(502).json({ error: 'We could not interpret that automatically. Continue with the guided questions.' });
+      return response.status(503).json({ error: 'intake_extraction_unavailable' });
     }
     return response.status(500).json({ error: 'Unable to complete the request' });
   }

@@ -5,6 +5,16 @@ import { intakeExtractionSchema, intakeJsonSchema, type IntakeExtraction } from 
 export class ProviderUnavailableError extends Error {}
 export class ExtractionFailedError extends Error {}
 
+const safeProviderErrorCode = async (response: Response) => {
+  try {
+    const body = await response.clone().json() as { error?: { code?: unknown; type?: unknown } };
+    const value = body.error?.code ?? body.error?.type;
+    return typeof value === 'string' || typeof value === 'number' ? String(value).slice(0, 80) : 'unavailable';
+  } catch {
+    return 'unavailable';
+  }
+};
+
 const groqResponseSchema = z.object({
   choices: z.array(z.object({
     message: z.object({ content: z.string() }),
@@ -17,6 +27,7 @@ export const extractIntake = async (
 ): Promise<IntakeExtraction> => {
   const apiKey = options.apiKey ?? process.env.GROQ_API_KEY;
   const model = options.model ?? process.env.GROQ_MODEL;
+  console.info(`[intake] groq_key_present=${Boolean(apiKey)} model_present=${Boolean(model)}`);
   if (!apiKey || !model) throw new ProviderUnavailableError('Natural-language intake is not configured');
 
   let response: Response;
@@ -37,15 +48,20 @@ export const extractIntake = async (
         },
       }),
     });
-  } catch {
+  } catch (error) {
+    console.error(`[intake] failure_stage=provider_connection error_name=${error instanceof Error ? error.name : 'UnknownError'}`);
     throw new ExtractionFailedError('The extraction provider could not be reached');
   }
-  if (!response.ok) throw new ExtractionFailedError('The extraction provider rejected the request');
+  if (!response.ok) {
+    console.error(`[intake] failure_stage=provider_response status=${response.status} error_code=${await safeProviderErrorCode(response)}`);
+    throw new ExtractionFailedError('The extraction provider rejected the request');
+  }
 
   try {
     const envelope = groqResponseSchema.parse(await response.json());
     return intakeExtractionSchema.parse(JSON.parse(envelope.choices[0].message.content));
-  } catch {
+  } catch (error) {
+    console.error(`[intake] failure_stage=response_validation error_name=${error instanceof Error ? error.name : 'UnknownError'}`);
     throw new ExtractionFailedError('The extraction response was invalid');
   }
 };

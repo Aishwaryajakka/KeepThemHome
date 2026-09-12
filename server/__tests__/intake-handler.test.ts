@@ -38,7 +38,8 @@ describe('POST /api/intake/extract', () => {
       { method: 'POST', body: { text: 'private owner story' } } as VercelRequest,
       response,
     );
-    expect(response.status).toHaveBeenCalledWith(502);
+    expect(response.status).toHaveBeenCalledWith(503);
+    expect(response.json).toHaveBeenCalledWith({ error: 'intake_extraction_unavailable' });
     const payload = vi.mocked(response.json).mock.calls[0][0];
     expect(payload).not.toHaveProperty('extraction');
     expect(JSON.stringify(payload)).not.toContain('raw provider detail');

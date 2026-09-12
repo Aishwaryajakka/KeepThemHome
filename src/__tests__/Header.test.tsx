@@ -20,6 +20,12 @@ vi.mock('@clerk/react', () => {
 });
 
 describe('product header account and exit behavior', () => {
+  it('routes the logo home and My Pets to its canonical route', () => {
+    render(<MemoryRouter><Header variant="product" /></MemoryRouter>);
+    expect(screen.getByRole('link', { name: 'Keep Them Home Homepage' })).toHaveAttribute('href', '/');
+    expect(screen.getByRole('link', { name: 'My Pets' })).toHaveAttribute('href', '/my-pets');
+  });
+
   it('keeps Dashboard in the account menu and removes primary Sign out', () => {
     render(<MemoryRouter><Header variant="product" onCtaClick={vi.fn()} petName="Luna" petType="dog" factors={['housing']} /></MemoryRouter>);
     expect(screen.getByTestId('account-menu')).toContainElement(screen.getAllByRole('link', { name: 'Dashboard' }).find((link) => link.closest('[data-testid="account-menu"]'))!);
