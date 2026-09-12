@@ -1,61 +1,13 @@
 import React from 'react';
-
-export const HowItWorks: React.FC = () => {
-  const steps = [
-    {
-      number: '01',
-      title: "Tell us what’s happening",
-      description: "Share what is making it difficult to keep your pet.",
-    },
-    {
-      number: '02',
-      title: "Explore possible solutions",
-      description: "We’ll help organize the situation and identify options worth exploring.",
-    },
-    {
-      number: '03',
-      title: "Make a plan",
-      description: "Leave with clear next steps and resources to consider.",
-    },
-  ];
-
-  return (
-    <section className="py-14 sm:py-20 md:py-24 border-t border-[#2E5440]/10 bg-[#FAF7F2]">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8">
-        {/* Section Title */}
-        <div className="mb-10 sm:mb-14">
-          <h2 className="font-serif text-2xl sm:text-3xl md:text-4xl text-[#2E5440] font-normal tracking-tight">
-            How it works
-          </h2>
-        </div>
-
-        {/* 3 Step Cards: Sophisticated, clean, un-crowded */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-          {steps.map((step) => (
-            <div
-              key={step.number}
-              className="flex flex-col p-6 sm:p-7 rounded-xl bg-white/70 border border-[#A7B89F]/30 shadow-[0_2px_8px_rgba(46,84,64,0.03)] hover:border-[#A7B89F]/60 transition-colors"
-            >
-              {/* Step Number Badge */}
-              <div className="inline-flex items-center justify-center w-9 h-9 rounded-md bg-[#FAF7F2] border border-[#E3C9B2]/80 text-[#2E5440] font-sans font-semibold text-sm mb-5">
-                {step.number}
-              </div>
-
-              {/* Step Title */}
-              <h3 className="font-serif text-lg sm:text-xl text-[#2E5440] font-medium mb-2.5 leading-snug">
-                {step.title}
-              </h3>
-
-              {/* Step Description */}
-              <p className="font-sans text-sm sm:text-base text-[#2D2D2D]/75 leading-relaxed text-pretty mt-auto">
-                {step.description}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-};
-
+import { Reveal } from '@/components/landing/Reveal';
+const steps = [
+  ['01', 'Tell us what’s happening', 'Share the situation in your own words.'],
+  ['02', 'We make sense of the situation', 'We identify the pressures making it difficult to keep your pet.'],
+  ['03', 'See realistic paths forward', 'Compare ways your pet may be able to stay with you.'],
+  ['04', 'See what would need to change', 'Understand what is blocking each path and what could unlock it.'],
+  ['05', 'Take the next step', 'Use trusted resources and save your plan.'],
+] as const;
+export const HowItWorks: React.FC = () => <div id="how-it-works" className="scroll-mt-24"><Reveal><p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--forest)]">A clearer way forward</p><h2 className="mt-2 font-serif text-4xl font-semibold leading-none text-[#18382c] sm:text-[48px]">How it works</h2><p className="mt-3 text-base text-[var(--charcoal)]/75">Start with your story. Leave with a clearer view of what could help you stay together.</p></Reveal>
+  <ol className="relative mt-6 space-y-2 before:absolute before:bottom-7 before:left-[25px] before:top-7 before:w-px before:bg-[var(--sage)]/65">{steps.map(([number, title, description], index) => <Reveal key={number} delay={index * 0.055}><li className="relative grid grid-cols-[52px_1fr] items-center gap-3"><span className="relative z-10 flex h-[46px] w-[46px] items-center justify-center rounded-full border border-[var(--sage)]/55 bg-[var(--cream)] font-serif text-lg font-semibold text-[var(--forest)] shadow-sm">{number}</span><div className="rounded-xl bg-white/55 px-5 py-3"><h3 className="font-serif text-[17px] font-semibold text-[#18382c]">{title}</h3><p className="mt-0.5 text-[13px] leading-relaxed text-[var(--charcoal)]/72">{description}</p></div></li></Reveal>)}</ol>
+</div>;
 export default HowItWorks;

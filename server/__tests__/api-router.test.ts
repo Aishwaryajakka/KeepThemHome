@@ -62,6 +62,30 @@ describe('consolidated API router', () => {
     expect(routed.query).toMatchObject({ id: caseId, pathKey: 'stay_and_resolve' });
   });
 
+  it('removes the internal rewrite parameter and preserves public query parameters', async () => {
+    const handlers = handlerSet();
+    const routed = {
+      method: 'GET',
+      url: '/api/resources?category=housing-search',
+      query: { path: 'resources', category: 'housing-search' },
+    } as unknown as VercelRequest;
+    await createApiRouter(handlers)(routed, responseDouble().response);
+    expect(handlers.resources).toHaveBeenCalledOnce();
+    expect(routed.query).toEqual({ category: 'housing-search' });
+  });
+
+  it('falls back to the original API URL when no rewrite parameter is present', async () => {
+    const handlers = handlerSet();
+    const routed = {
+      method: 'GET',
+      url: `/api/cases/${caseId}/paths/stay_and_resolve/evidence?source=demo`,
+      query: { source: 'demo' },
+    } as unknown as VercelRequest;
+    await createApiRouter(handlers)(routed, responseDouble().response);
+    expect(handlers.evidence).toHaveBeenCalledOnce();
+    expect(routed.query).toMatchObject({ source: 'demo', id: caseId, pathKey: 'stay_and_resolve' });
+  });
+
   it('returns 404 for an unknown API route', async () => {
     const { response, json } = responseDouble();
     await createApiRouter(handlerSet())(request('GET', 'unknown'), response);

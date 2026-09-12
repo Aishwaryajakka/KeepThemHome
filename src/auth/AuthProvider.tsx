@@ -1,5 +1,5 @@
 import { ClerkProvider, useAuth, useClerk } from '@clerk/react';
-import { createContext, useContext, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { configureAuthTokenProvider } from '@/lib/case-api';
 
 interface AppAuth {
@@ -18,14 +18,19 @@ const AuthContext = createContext<AppAuth>({
 const ClerkAuthBridge = ({ children }: { children: ReactNode }) => {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const clerk = useClerk();
+  const [tokenProviderReady, setTokenProviderReady] = useState(false);
   useEffect(() => {
     configureAuthTokenProvider(() => getToken());
-    return () => configureAuthTokenProvider(undefined);
+    setTokenProviderReady(true);
+    return () => {
+      setTokenProviderReady(false);
+      configureAuthTokenProvider(undefined);
+    };
   }, [getToken]);
   return (
     <AuthContext.Provider value={{
       configured: true,
-      loaded: isLoaded,
+      loaded: isLoaded && tokenProviderReady,
       signedIn: Boolean(isSignedIn),
       openSignIn: () => clerk.openSignIn(),
       signOut: () => clerk.signOut(),

@@ -8,6 +8,8 @@ import {
   initialAssessmentCase,
 } from '@/lib/assessment-session';
 import { caseApi, type CaseResponse } from '@/lib/case-api';
+import { MemoryRouter } from 'react-router-dom';
+import { DemoModeProvider } from '@/demo/DemoModeProvider';
 
 const backendCase: CaseResponse = {
   id: '550e8400-e29b-41d4-a716-446655440000',
@@ -23,17 +25,20 @@ const backendCase: CaseResponse = {
   updatedAt: '2026-09-10T00:00:00.000Z',
 };
 
+const renderHome = () => render(<MemoryRouter><DemoModeProvider><HomePage /></DemoModeProvider></MemoryRouter>);
+
 const startAssessment = async () => {
   const user = userEvent.setup();
-  render(<HomePage />);
-  await user.click(screen.getByRole('button', { name: 'Find options for my pet' }));
+  renderHome();
+  await user.click(screen.getAllByRole('button', { name: 'Find options for my pet' })[0]);
   return user;
 };
 
 const enterLuna = async () => {
   const user = await startAssessment();
+  await user.click(screen.getByRole('button', { name: 'Prefer to answer step by step?' }));
   await user.type(screen.getByLabelText(/Pet name/), 'Luna');
-  await user.click(screen.getByRole('button', { name: 'Dog' }));
+  await user.click(screen.getByRole('radio', { name: 'Dog' }));
   return user;
 };
 
@@ -47,14 +52,14 @@ const reachHousingPlan = async () => {
   const user = await reachRootCause();
   await user.click(screen.getByRole('checkbox', { name: /^Housing/ }));
   await user.click(screen.getByRole('button', { name: 'Continue' }));
-  await user.click(screen.getByRole('button', { name: /My landlord or property says pets aren’t allowed/ }));
+  await user.click(screen.getByRole('radio', { name: /My landlord or property says pets aren’t allowed/ }));
   await user.click(screen.getByRole('button', { name: 'Continue' }));
-  await user.click(screen.getByRole('button', { name: 'This week' }));
+  await user.click(screen.getByRole('radio', { name: 'This week' }));
   await user.click(screen.getByRole('button', { name: 'Continue' }));
-  await user.click(screen.getByRole('button', { name: 'Stay where I am' }));
+  await user.click(screen.getByRole('radio', { name: 'Stay where I am' }));
   await user.click(screen.getByRole('button', { name: 'See my options' }));
   expect(screen.getByText('ASSESSMENT COMPLETE')).toBeInTheDocument();
-  await user.click(screen.getByRole('button', { name: 'Continue' }));
+  await user.click(screen.getByRole('button', { name: 'Open decision workspace' }));
   return user;
 };
 
@@ -66,40 +71,97 @@ beforeEach(() => {
 });
 
 describe('Keep Them Home demo flows', () => {
-  it('falls back to the unchanged guided intake when automatic intake fails', async () => {
+  it('renders the owner-facing brand foundation and landing story', () => {
+    renderHome();
+
+    expect(screen.getByRole('heading', { name: 'Before you give them up, let’s see what’s possible.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'What Keep Them Home helps you understand' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'How it works' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Built to support decisions, not make them for you.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'People and pets belong together.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'See what’s possible for your pet.' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Find options for my pet' })).toHaveLength(2);
+    expect(screen.getByRole('button', { name: 'Find options' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'How it works' })[0]).toHaveAttribute('href', '/#how-it-works');
+    expect(screen.getAllByRole('link', { name: 'What we help' })[0]).toHaveAttribute('href', '/#what-we-help');
+    expect(screen.getAllByRole('link', { name: 'Our promise' })[0]).toHaveAttribute('href', '/#our-promise');
+    expect(screen.getByLabelText('Example of Keep Them Home path results')).toHaveTextContent('Example');
+    expect(screen.getByRole('button', { name: 'Demo Mode' })).toBeInTheDocument();
+    expect(screen.queryByText(/Usually takes/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Elena/i)).not.toBeInTheDocument();
+    expect(screen.getByAltText('A golden retriever and tabby cat resting together')).toHaveAttribute('src', '/images/pets-resting-hero.png');
+    expect(screen.getByText(`© ${new Date().getFullYear()} Keep Them Home`)).toBeInTheDocument();
+    expect(screen.queryByText(/AI understands/i)).not.toBeInTheDocument();
+  });
+
+  it('loads and resets the temporary Luna Demo Mode scenario', async () => {
+    const user = userEvent.setup();
+    renderHome();
+    await user.click(screen.getByRole('button', { name: 'Demo Mode' }));
+    expect(await screen.findByLabelText('Demo scenario')).toHaveTextContent('Luna');
+    expect(screen.getByRole('textbox', { name: 'Tell us what’s happening' })).toHaveValue('My landlord is threatening eviction because Luna barks while I’m at work. I have a week and can’t afford a trainer.');
+    expect(screen.queryByText(/Landlord pressure · barking/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Reset demo' }));
+    expect(await screen.findByRole('heading', { name: 'Before you give them up, let’s see what’s possible.' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Demo scenario')).not.toBeInTheDocument();
+  });
+
+  it('reaches the computed decision workspace from Demo Mode', async () => {
+    const user = userEvent.setup();
+    renderHome();
+    await user.click(screen.getByRole('button', { name: 'Demo Mode' }));
+    await user.click(screen.getByRole('button', { name: 'See what we understood' }));
+    expect(await screen.findByRole('heading', { name: 'Here’s what we understood.' })).toBeInTheDocument();
+    expect(screen.getAllByText('From your story')).toHaveLength(4);
+    expect(screen.getByText('We still need to know')).toBeInTheDocument();
+    await user.click(screen.getByRole('radio', { name: 'I need to stay in my current home' }));
+    await user.click(screen.getByRole('button', { name: 'See my options' }));
+    expect(await screen.findByRole('heading', { name: 'Luna’s options' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Luna case context')).toHaveTextContent('Housing');
+    expect(screen.getByText('Stay in current housing with Luna')).toBeInTheDocument();
+    expect(screen.getByText('Use a temporary-care bridge')).toBeInTheDocument();
+    expect(screen.getByText('Move with Luna')).toBeInTheDocument();
+  });
+  it('clearly offers guided intake when automatic intake fails', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 503 })));
     const user = await startAssessment();
     await user.type(screen.getByRole('textbox', { name: 'Tell us what’s happening' }), 'My landlord says Luna has to go.');
-    await user.click(screen.getByRole('button', { name: 'Find possible paths' }));
-    expect(await screen.findByText(/couldn’t interpret that automatically/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'See what we understood' }));
+    expect(await screen.findByText(/couldn’t fully interpret that/)).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Answer step by step', exact: true })).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: 'Answer step by step' }));
     expect(screen.getByLabelText(/Pet name/)).toBeEnabled();
   });
 
-  it('reviews and merges natural-language facts into the existing guided flow', async () => {
+  it('uses the Luna extraction, labels provenance, and asks only for the unresolved goal', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
       extraction: {
-        petName: 'Luna', petType: null, primaryBarrier: 'housing', contributingBarriers: ['behavior', 'cost'],
+        petName: 'Luna', petType: 'dog', primaryBarrier: 'housing', contributingBarriers: ['behavior', 'cost'],
         housingSituation: 'My landlord or property says pets aren’t allowed', behaviorConcern: 'Barking or excessive noise',
         behaviorSeriousness: null, behaviorAlreadyTried: null, behaviorHelpBarrier: 'Cost',
         costConstraint: 'Cannot afford a trainer', urgency: 'This week', goal: null,
       },
-      followUps: [
-        { field: 'pet', screen: 'pet-info', question: 'Who are we helping?' },
-        { field: 'goal', screen: 'housing-3', question: 'Would you prefer to stay where you are or move?' },
-      ],
+      followUps: [{ field: 'goal', screen: 'housing-3', question: 'What are you open to right now?' }],
     }), { status: 200 })));
     const user = await startAssessment();
-    await user.click(screen.getByRole('button', { name: 'Dog' }));
     await user.type(screen.getByRole('textbox', { name: 'Tell us what’s happening' }), 'My landlord is threatening eviction because Luna barks while I’m at work. I have a week and can’t afford a trainer.');
-    await user.click(screen.getByRole('button', { name: 'Find possible paths' }));
-    expect(await screen.findByText('Housing issue')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Continue with these details' }));
-    expect(screen.getByRole('heading', { name: /stay where you are or move/ })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'See what we understood' }));
+    expect(await screen.findByText('Housing pressure')).toBeInTheDocument();
+    expect(screen.getByText('Barking while you’re away')).toBeInTheDocument();
+    expect(screen.getByText('Cost is limiting training options')).toBeInTheDocument();
+    expect(screen.getByText('Urgent — about 7 days')).toBeInTheDocument();
+    expect(screen.getAllByText('From your story')).toHaveLength(4);
+    expect(screen.getByRole('radio', { name: 'I need to stay in my current home' })).not.toBeChecked();
+    expect(screen.getByRole('button', { name: 'See my options' })).toBeDisabled();
+    await user.click(screen.getByRole('radio', { name: 'I need to stay in my current home' }));
+    expect(screen.getByText('Confirmed by you')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'See my options' }));
+    expect(await screen.findByRole('heading', { name: 'Luna’s options' })).toBeInTheDocument();
     await waitFor(() => {
       const stored = JSON.parse(sessionStorage.getItem(ASSESSMENT_SESSION_KEY) ?? '{}');
       expect(stored.caseState?.selectedFactors).toEqual(['housing', 'behavior', 'cost']);
       expect(stored.caseState?.behavior.concerns).toEqual(['Barking or excessive noise']);
-      expect(stored.caseState?.housing.goal).toBe('');
+      expect(stored.caseState?.housing.goal).toBe('Stay where I am');
     });
   });
 
@@ -114,19 +176,19 @@ describe('Keep Them Home demo flows', () => {
 
     await user.click(screen.getByRole('checkbox', { name: 'Barking or excessive noise' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: 'Frustrating, but manageable' }));
+    await user.click(screen.getByRole('radio', { name: 'Frustrating, but manageable' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: 'Nothing yet' }));
+    await user.click(screen.getByRole('radio', { name: 'Nothing yet' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: 'Cost' }));
+    await user.click(screen.getByRole('radio', { name: 'Cost' }));
     await user.click(screen.getByRole('button', { name: 'See my options' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
 
-    await user.click(screen.getByRole('button', { name: /My landlord or property says pets aren’t allowed/ }));
+    await user.click(screen.getByRole('radio', { name: /My landlord or property says pets aren’t allowed/ }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: 'This week' }));
+    await user.click(screen.getByRole('radio', { name: 'This week' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: 'Stay where I am' }));
+    await user.click(screen.getByRole('radio', { name: 'Stay where I am' }));
     await user.click(screen.getByRole('button', { name: 'See my options' }));
 
     expect(screen.getByText('Behavior, Money / financial strain')).toBeInTheDocument();
@@ -140,7 +202,7 @@ describe('Keep Them Home demo flows', () => {
     const user = await enterLuna();
 
     expect(screen.getByLabelText(/Pet name/)).toHaveValue('Luna');
-    expect(screen.getByRole('button', { name: 'Dog' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('radio', { name: 'Dog' })).toBeChecked();
 
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('checkbox', { name: /^Housing/ }));
@@ -152,7 +214,7 @@ describe('Keep Them Home demo flows', () => {
   it('protects the Luna Housing golden path through the keeping outcome', async () => {
     const user = await reachHousingPlan();
 
-    expect(screen.getByRole('heading', { name: 'Your Keep Luna Home Plan' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Luna’s options' })).toBeInTheDocument();
     const resourceLinks = screen.getAllByRole('link', { name: 'Visit resource' });
     expect(resourceLinks).toHaveLength(3);
     for (const link of resourceLinks) {
@@ -179,7 +241,7 @@ describe('Keep Them Home demo flows', () => {
     await user.click(screen.getByRole('button', { name: 'Continue' }));
     await user.click(screen.getByRole('checkbox', { name: 'Barking or excessive noise' }));
     await user.click(screen.getByRole('button', { name: 'Continue' }));
-    await user.click(screen.getByRole('button', { name: /immediate safety concern/ }));
+    await user.click(screen.getByRole('radio', { name: /immediate safety concern/ }));
 
     expect(screen.getByRole('dialog')).toHaveTextContent('Safety comes first.');
   });
@@ -193,7 +255,7 @@ describe('Keep Them Home demo flows', () => {
         behavior: { ...initialAssessmentCase.behavior, seriousness: 'There’s an immediate safety concern' },
       },
     }));
-    render(<HomePage />);
+    renderHome();
     expect(screen.getByRole('dialog')).toHaveTextContent('Safety comes first.');
   });
 
@@ -225,18 +287,18 @@ describe('Keep Them Home demo flows', () => {
       },
     }));
 
-    render(<HomePage />);
+    renderHome();
 
     expect(screen.getByRole('heading', { name: /stay where you are or move/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Stay where I am' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('radio', { name: 'Stay where I am' })).toBeChecked();
     await userEvent.click(screen.getByRole('button', { name: 'Back to previous question' }));
-    expect(screen.getByRole('button', { name: 'This week' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('radio', { name: 'This week' })).toBeChecked();
   });
 
   it('discards invalid persisted state and starts safely at the homepage', () => {
     sessionStorage.setItem(ASSESSMENT_SESSION_KEY, '{not valid json');
 
-    render(<HomePage />);
+    renderHome();
 
     expect(screen.getByRole('heading', { name: /Before you give them up/ })).toBeInTheDocument();
     expect(sessionStorage.getItem(ASSESSMENT_SESSION_KEY)).toBeNull();
@@ -260,8 +322,9 @@ describe('Keep Them Home demo flows', () => {
 
     window.history.back();
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: 'First, who are we helping?' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Tell us what’s happening.' })).toBeInTheDocument();
     });
+    await user.click(screen.getByRole('button', { name: 'Prefer to answer step by step?' }));
     expect(screen.getByLabelText(/Pet name/)).toHaveValue('Luna');
 
     window.history.forward();

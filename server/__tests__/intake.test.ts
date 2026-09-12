@@ -43,8 +43,7 @@ describe('natural-language intake validation', () => {
   it('chooses supported follow-ups deterministically and keeps the count small', () => {
     expect(selectIntakeFollowUps(lunaExtraction)).toEqual([
       { field: 'pet', screen: 'pet-info', question: 'Who are we helping?' },
-      { field: 'behaviorSeriousness', screen: 'behavior-2', question: 'How serious does the situation feel?' },
-      { field: 'behaviorAlreadyTried', screen: 'behavior-3', question: 'What have you already tried?' },
+      { field: 'goal', screen: 'housing-3', question: 'Would you prefer to stay where you are or move?' },
     ]);
   });
 });
@@ -62,6 +61,7 @@ describe('Groq extraction boundary', () => {
     const body = JSON.parse(providerFetch.mock.calls[0][1]?.body as string);
     expect(body.response_format.json_schema.strict).toBe(true);
     expect(body.response_format.json_schema.schema.additionalProperties).toBe(false);
+    expect(body.response_format.json_schema.schema.properties.contributingBarriers).not.toHaveProperty('uniqueItems');
   });
 
   it('sanitizes malformed and failed provider responses without retrying', async () => {

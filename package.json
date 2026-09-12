@@ -12,7 +12,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx server/seeds/resources.ts",
-    "db:verify": "tsx server/scripts/verify-live.ts"
+    "db:seed:demo": "tsx server/seeds/demo.ts",
+    "db:verify": "tsx server/scripts/verify-live.ts",
+    "db:verify:production": "tsx server/scripts/verify-production.ts"
   },
   "dependencies": {
     "@clerk/backend": "^3.17.1",

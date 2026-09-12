@@ -1,19 +1,6 @@
 import React from 'react';
-import { Info } from 'lucide-react';
-
-export const TrustDisclaimer: React.FC = () => {
-  return (
-    <section className="py-8 sm:py-10 border-t border-[#2E5440]/10">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="flex items-start sm:items-center gap-3 p-4 sm:p-5 rounded-lg bg-[#FAF7F2] border border-[#A7B89F]/20 text-[#2D2D2D]/70 text-xs sm:text-sm leading-relaxed">
-          <Info className="w-4 h-4 text-[#A7B89F] shrink-0 mt-0.5 sm:mt-0" />
-          <p className="text-pretty">
-            Keep Them Home provides informational guidance and does not replace veterinary, legal, behavioral, or emergency services.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-};
-
+import { Check, Leaf } from 'lucide-react';
+import { Reveal } from '@/components/landing/Reveal';
+const points = ['No judgment.', 'No surrender pressure.', 'No account required to explore options.', 'You choose whether to save your plan.', 'Your situation stays yours.'];
+export const TrustDisclaimer: React.FC = () => <div id="our-promise" className="scroll-mt-24"><Reveal direction="right"><article className="relative overflow-hidden rounded-[24px] bg-[var(--sage)]/18 p-7 shadow-[0_10px_30px_rgba(46,84,64,.05)] sm:p-8"><span className="absolute -right-16 -top-20 h-56 w-56 rounded-full bg-[var(--sage)]/20" aria-hidden="true" /><div className="relative"><p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--forest)]">Support with you in control</p><h2 aria-label="Built to support decisions, not make them for you." className="mt-4 max-w-[390px] font-serif text-4xl font-semibold leading-[.98] text-[#18382c]">Built to support<br />decisions, not make<br />them for you.</h2><p className="mt-5 text-[15px] leading-[1.5] text-[var(--charcoal)]/78">Keep Them Home combines information you share with structured decision logic and trusted support resources. You stay in control of every decision.</p><ul className="mt-5 space-y-2">{points.map((point) => <li key={point} className="flex items-center gap-3 text-sm text-[var(--charcoal)]/78"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--forest)] text-white"><Check className="h-3 w-3" aria-hidden="true" /></span>{point}</li>)}</ul><div className="mt-6 flex gap-3 rounded-2xl bg-[var(--warm-sand)]/28 p-4"><Leaf className="h-6 w-6 shrink-0 text-[var(--forest)]" aria-hidden="true" /><p className="text-xs leading-relaxed text-[var(--charcoal)]/70">Hard moments rarely come down to just one problem. Making the constraints visible can make the next step clearer.</p></div></div></article></Reveal></div>;
 export default TrustDisclaimer;

@@ -101,7 +101,7 @@ export const intakeJsonSchema = {
     petName: { type: ['string', 'null'], minLength: 1, maxLength: 100 },
     petType: nullableEnum(petTypeSchema.options),
     primaryBarrier: nullableEnum(primaryBarrierSchema.options),
-    contributingBarriers: { type: 'array', items: { type: 'string', enum: primaryBarrierSchema.options }, maxItems: 6, uniqueItems: true },
+    contributingBarriers: { type: 'array', items: { type: 'string', enum: primaryBarrierSchema.options }, maxItems: 6 },
     housingSituation: nullableEnum(housingSituationSchema.options),
     behaviorConcern: nullableEnum(behaviorConcernSchema.options),
     behaviorSeriousness: nullableEnum(behaviorSeriousnessSchema.options),

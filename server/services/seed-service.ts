@@ -4,8 +4,19 @@ import { getDatabase } from '../db';
 import { interventionResources, interventions, resources } from '../db/schema';
 import { interventionCatalog, interventionResourceSlugs } from '../interventions/catalog';
 
+export const verifiedCatalogManifest = () => {
+  const resourceSlugs = supportResources.map(({ id }) => id);
+  const interventionKeys = interventionCatalog.map(({ key }) => key);
+  if (new Set(resourceSlugs).size !== resourceSlugs.length) throw new Error('Verified resource slugs must be unique');
+  if (new Set(interventionKeys).size !== interventionKeys.length) throw new Error('Intervention keys must be unique');
+  const unknownLinks = Object.values(interventionResourceSlugs).flat().filter((slug) => !resourceSlugs.includes(slug));
+  if (unknownLinks.length > 0) throw new Error(`Interventions reference unknown resources: ${unknownLinks.join(', ')}`);
+  return { resourceSlugs, interventionKeys };
+};
+
 export const seedVerifiedCatalog = async () => {
   const db = getDatabase();
+  verifiedCatalogManifest();
 
   for (const resource of supportResources) {
     const { id: slug, ...metadata } = resource;

@@ -70,6 +70,8 @@ export const createApiRouter = (handlers: ApiHandlers = defaultHandlers) => asyn
   response: VercelResponse,
 ) => {
   const path = routePath(request);
+  const { path: _internalRewritePath, ...publicQuery } = request.query;
+  request.query = publicQuery;
 
   if (path === 'me') return handlers.me(request, response);
   if (path === 'pets') return handlers.pets(request, response);

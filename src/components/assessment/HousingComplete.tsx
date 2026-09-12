@@ -62,10 +62,10 @@ export const HousingComplete: React.FC<HousingCompleteProps> = ({
           <span>ASSESSMENT COMPLETE</span>
         </div>
         <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#2E5440] font-normal leading-tight tracking-tight mb-3 sm:mb-4 text-balance">
-          We’re putting together a plan for {displayName}.
+          We found three possible paths for {displayName}.
         </h1>
         <p className="font-sans text-base sm:text-lg text-[#2D2D2D]/80 leading-relaxed text-pretty">
-          We’ll use what you told us to focus on the most relevant next steps.
+          Next, compare what is possible now, what is blocked, and what could make another path work.
         </p>
       </div>
 
@@ -145,7 +145,7 @@ export const HousingComplete: React.FC<HousingCompleteProps> = ({
           size="lg"
           className="w-full sm:w-auto min-h-12 px-8 py-3.5 rounded-lg bg-[#2E5440] hover:bg-[#244232] text-[#FAF7F2] text-base font-medium transition-all shadow-sm flex items-center justify-center gap-2 group cursor-pointer focus-visible:ring-2 focus-visible:ring-[#2E5440] focus-visible:ring-offset-2"
         >
-          <span>Continue</span>
+          <span>Open decision workspace</span>
           <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
         </Button>
 

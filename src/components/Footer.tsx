@@ -1,18 +1,10 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { BrandLockup } from '@/components/Header';
 
-export const Footer: React.FC = () => {
-  return (
-    <footer className="w-full py-8 border-t border-[#2E5440]/10 bg-[#FAF7F2]">
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#2D2D2D]/60 font-sans">
-        <div>
-          Keep Them Home — Solutions Today. More Tomorrows Together.
-        </div>
-        <div>
-          &copy; {new Date().getFullYear()} Keep Them Home. All rights reserved.
-        </div>
-      </div>
-    </footer>
-  );
-};
-
+export const Footer: React.FC = () => <footer className="border-t border-[var(--border-warm)]/60 bg-[var(--cream)] py-7"><div className="mx-auto flex max-w-[1380px] flex-col items-center justify-between gap-7 px-5 text-center sm:px-8 lg:flex-row lg:text-left">
+  <BrandLockup compact />
+  <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs font-medium text-[var(--charcoal)]/80" aria-label="Footer navigation"><a href="/#how-it-works">How it works</a><a href="/#what-we-help">What we help</a><a href="/#our-promise">Our promise</a><Link to="/my-pets">My Pets</Link></nav>
+  <div className="flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] text-[var(--charcoal)]/65"><span>Privacy Policy</span><span>Terms</span><span>Contact</span><span>© {new Date().getFullYear()} Keep Them Home</span></div>
+</div></footer>;
 export default Footer;

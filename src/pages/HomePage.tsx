@@ -4,6 +4,7 @@ import Hero from '@/components/Hero';
 import HowItWorks from '@/components/HowItWorks';
 import TrustDisclaimer from '@/components/TrustDisclaimer';
 import Footer from '@/components/Footer';
+import { BrandMoment, ValueProposition } from '@/components/LandingSections';
 import PetInfoScreen from '@/components/assessment/PetInfoScreen';
 import RootCauseScreen from '@/components/assessment/RootCauseScreen';
 import HousingStep1 from '@/components/assessment/HousingStep1';
@@ -46,6 +47,7 @@ import { caseApi } from '@/lib/case-api';
 import { useAppAuth } from '@/auth/AuthProvider';
 import { mergeIntakeResult } from '@/lib/intake-merge';
 import type { IntakeResult } from '@/lib/intake-api';
+import { useDemoMode } from '@/demo/DemoModeProvider';
 
 type AssessmentAction =
   | { type: 'update'; patch: Partial<AssessmentCaseState> }
@@ -58,9 +60,22 @@ const assessmentReducer = (state: AssessmentCaseState, action: AssessmentAction)
 
 const HISTORY_STATE_KEY = 'keepThemHomeScreen';
 
+const LUNA_DEMO_STORY = 'My landlord is threatening eviction because Luna barks while I’m at work. I have a week and can’t afford a trainer.';
+const lunaDemoExtraction: IntakeResult = {
+  extraction: {
+    petName: 'Luna', petType: 'dog', primaryBarrier: 'housing', contributingBarriers: ['behavior', 'cost'],
+    housingSituation: 'My landlord or property says pets aren’t allowed', behaviorConcern: 'Barking or excessive noise',
+    behaviorSeriousness: null, behaviorAlreadyTried: null, behaviorHelpBarrier: 'Cost',
+    costConstraint: 'Cannot afford a trainer', urgency: 'This week', goal: null,
+  },
+  followUps: [{ field: 'goal', screen: 'housing-3', question: 'What are you open to right now?' }],
+};
+
 export const HomePage: React.FC = () => {
   const [caseState, dispatch] = useReducer(assessmentReducer, undefined, loadAssessmentCase);
   const auth = useAppAuth();
+  const demo = useDemoMode();
+  const demoWasActive = useRef(false);
   const [saveRequested, setSaveRequested] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const mainContentRef = useRef<HTMLElement>(null);
@@ -91,6 +106,21 @@ export const HomePage: React.FC = () => {
   }, []);
 
   useCaseSync(caseState);
+
+  useEffect(() => {
+    if (demo.active) {
+      demoWasActive.current = true;
+      dispatch({ type: 'reset' });
+      dispatch({ type: 'update', patch: { currentScreen: 'pet-info' } });
+      setSaveRequested(false);
+      setSaveStatus('idle');
+    } else if (demoWasActive.current) {
+      demoWasActive.current = false;
+      dispatch({ type: 'reset' });
+      setSaveRequested(false);
+      setSaveStatus('idle');
+    }
+  }, [demo.active]);
 
   const saveCurrentPlan = useCallback(async () => {
     if (!caseState.petName.trim() || !caseState.petType || !caseState.rootCause) return;
@@ -173,8 +203,13 @@ export const HomePage: React.FC = () => {
     setCurrentScreen('root-cause');
   };
 
-  const handleIntakeConfirm = (result: IntakeResult) => {
-    const nextState = mergeIntakeResult(caseState, result);
+  const handleIntakeConfirm = (result: IntakeResult, confirmedGoal?: HousingGoal) => {
+    const merged = mergeIntakeResult(caseState, result);
+    const nextState = confirmedGoal ? {
+      ...merged,
+      housing: { ...merged.housing, goal: confirmedGoal },
+      currentScreen: merged.rootCause === 'housing' ? 'housing-plan' as const : merged.currentScreen,
+    } : merged;
     window.history.pushState({ [HISTORY_STATE_KEY]: nextState.currentScreen }, '', window.location.href);
     dispatch({ type: 'update', patch: nextState });
   };
@@ -341,15 +376,24 @@ export const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F2] text-[#2D2D2D] selection:bg-[#E3C9B2]/60 selection:text-[#2E5440]">
       {/* Header */}
-      <Header onCtaClick={handleBackToHome} />
+      <Header onCtaClick={handleBackToHome} onStart={currentScreen === 'home' ? handleStartAssessment : undefined} />
 
       {/* Main Content Area */}
       <main ref={mainContentRef} tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
+        {demo.active && currentScreen !== 'home' && (
+          <aside className="border-b border-[#D6C29E] bg-[#F3E9CF] px-4 py-3" aria-label="Demo scenario">
+            <div className="mx-auto flex max-w-6xl flex-col gap-1 text-sm text-[#4E432F] sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <p><strong className="text-[#2E5440]">Luna demo</strong> <span className="hidden sm:inline">—</span> Temporary demo — nothing is saved unless you choose to save it.</p>
+              <button type="button" onClick={demo.reset} className="brand-focus rounded text-xs font-semibold text-[var(--forest)] underline underline-offset-4">Reset demo</button>
+            </div>
+          </aside>
+        )}
         {currentScreen === 'home' && (
           <>
             <Hero onStart={handleStartAssessment} />
-            <HowItWorks />
-            <TrustDisclaimer />
+            <ValueProposition />
+            <section className="bg-[var(--cream)] py-16 sm:py-20"><div className="mx-auto grid max-w-[1380px] gap-10 px-5 sm:px-8 lg:grid-cols-[1.48fr_1fr] lg:items-start lg:gap-16 lg:px-12"><HowItWorks /><TrustDisclaimer /></div></section>
+            <BrandMoment onStart={handleStartAssessment} />
           </>
         )}
 
@@ -357,6 +401,8 @@ export const HomePage: React.FC = () => {
           <PetInfoScreen
             petName={petName}
             petType={petType}
+            demoStory={demo.active ? LUNA_DEMO_STORY : undefined}
+            demoFallback={demo.active ? lunaDemoExtraction : undefined}
             onNameChange={(value) => updateCase('petName', value)}
             onTypeSelect={(value) => updateCase('petType', value)}
             onContinue={handleContinueToRootCause}

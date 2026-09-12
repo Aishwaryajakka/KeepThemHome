@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { ChoiceCard } from '@/components/ui/choice-card';
 import {
   Dialog,
   DialogContent,
@@ -52,7 +53,7 @@ export const BehaviorStep2: React.FC<BehaviorStep2Props> = ({
   };
 
   return (
-    <div className="py-8 sm:py-14 md:py-20 px-4 sm:px-6 md:px-8 max-w-3xl mx-auto w-full">
+    <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-14 md:px-8 md:py-16">
       {/* Back button */}
       <button
         type="button"
@@ -88,39 +89,15 @@ export const BehaviorStep2: React.FC<BehaviorStep2Props> = ({
             const isSafetyConcern = option === 'There’s an immediate safety concern';
 
             return (
-              <button
+              <ChoiceCard
                 key={option}
-                type="button"
-                onClick={() => handleSelectOption(option)}
-                className={`w-full p-4 sm:p-5 rounded-2xl border text-left transition-all cursor-pointer flex items-center justify-between gap-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#2E5440] ${
-                  isSelected
-                    ? 'border-[#2E5440] bg-[#E3C9B2]/25 shadow-sm ring-1 ring-[#2E5440]'
-                    : isSafetyConcern
-                    ? 'border-[#A7B89F]/40 bg-white/70 hover:bg-white hover:border-[#A7B89F]/80'
-                    : 'border-[#A7B89F]/35 bg-white/70 hover:bg-white hover:border-[#A7B89F]/70'
-                }`}
-                aria-pressed={isSelected}
+                name="behavior-seriousness"
+                checked={isSelected}
+                onChange={() => handleSelectOption(option)}
+                className={isSafetyConcern && !isSelected ? 'border-[var(--sage)]/60' : undefined}
               >
-                <div className="flex items-center gap-2.5">
-                  <span
-                    className={`font-sans text-base sm:text-lg leading-snug ${
-                      isSelected ? 'text-[#2E5440] font-medium' : 'text-[#2D2D2D]'
-                    }`}
-                  >
-                    {option}
-                  </span>
-                </div>
-
-                <div
-                  className={`w-6 h-6 rounded-full border flex items-center justify-center shrink-0 transition-all ${
-                    isSelected
-                      ? 'border-[#2E5440] bg-[#2E5440] text-[#FAF7F2]'
-                      : 'border-[#A7B89F]/60 bg-transparent'
-                  }`}
-                >
-                  {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                </div>
-              </button>
+                {option}
+              </ChoiceCard>
             );
           })}
         </div>

@@ -54,3 +54,9 @@ Desktop.ini
 *.temp
 .cache/
 .vercel
+
+# Environment secrets
+.env
+.env.local
+.env.production
+.env.*.local

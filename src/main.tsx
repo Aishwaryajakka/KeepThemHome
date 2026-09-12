@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import { AppWrapper } from "./components/common/PageMeta.tsx";
 import "./index.css";
 import { AuthProvider } from './auth/AuthProvider';
+import { DemoModeProvider } from './demo/DemoModeProvider';
 
 Sentry.init({
   dsn: import.meta.env['VITE_SENTRY_DSN'] as string | undefined,
@@ -13,7 +14,7 @@ Sentry.init({
 createRoot(document.getElementById("root")!).render(
   <Sentry.ErrorBoundary fallback={<p>应用发生错误，请刷新页面重试</p>}>
     <AppWrapper>
-      <AuthProvider><App /></AuthProvider>
+      <AuthProvider><DemoModeProvider><App /></DemoModeProvider></AuthProvider>
     </AppWrapper>
   </Sentry.ErrorBoundary>
 );
