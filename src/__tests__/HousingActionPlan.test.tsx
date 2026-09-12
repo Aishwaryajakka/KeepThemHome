@@ -11,7 +11,6 @@ const props = {
   situation: 'My landlord or property says pets aren’t allowed' as const,
   timing: 'This week' as const,
   goal: 'Stay where I am' as const,
-  onTryPlan: vi.fn(),
   onBack: vi.fn(),
 };
 
@@ -31,7 +30,7 @@ describe('HousingActionPlan backend fallback', () => {
     expect(screen.getByRole('heading', { name: 'Stay in current housing with Luna' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Use a temporary-care bridge' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Move with Luna' })).toBeInTheDocument();
-    expect(screen.getAllByText(/FEASIBLE|CONDITIONAL|BLOCKED/)).toHaveLength(3);
+    expect(screen.getAllByText(/Feasible|Conditional|Blocked/)).toHaveLength(3);
   });
 
   it('keeps path exploration functional when reduced motion is preferred', async () => {
@@ -45,15 +44,30 @@ describe('HousingActionPlan backend fallback', () => {
   it('uses the existing save callback and exposes My Pets after success', async () => {
     const user = userEvent.setup();
     const onSavePlan = vi.fn();
-    const { rerender } = render(<MemoryRouter><HousingActionPlan {...props} backendCaseId={undefined} onSavePlan={onSavePlan} /></MemoryRouter>);
+    const { rerender } = render(<MemoryRouter><HousingActionPlan {...props} backendCaseId={undefined} signedIn onSavePlan={onSavePlan} /></MemoryRouter>);
     await user.click(screen.getByRole('button', { name: 'Save Luna’s plan' }));
     expect(onSavePlan).toHaveBeenCalledOnce();
-    rerender(<MemoryRouter><HousingActionPlan {...props} backendCaseId={undefined} onSavePlan={onSavePlan} saveStatus="saved" /></MemoryRouter>);
+    rerender(<MemoryRouter><HousingActionPlan {...props} backendCaseId={undefined} signedIn onSavePlan={onSavePlan} saveStatus="saved" /></MemoryRouter>);
     expect(screen.getByText('Luna’s plan is saved.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View My Pets' })).toHaveAttribute('href', '/my-pets');
   });
 
-  it('renders a successful backend intervention plan', async () => {
+  it('keeps signed-out, saving, and error save states explicit', () => {
+    const { rerender } = render(<MemoryRouter><HousingActionPlan {...props} backendCaseId={undefined} onSavePlan={vi.fn()} /></MemoryRouter>);
+    expect(screen.getByRole('button', { name: 'Sign in to save Luna’s plan' })).toBeInTheDocument();
+
+    rerender(<MemoryRouter><HousingActionPlan {...props} backendCaseId={undefined} signedIn onSavePlan={vi.fn()} saveStatus="saving" /></MemoryRouter>);
+    expect(screen.getByRole('button', { name: 'Saving Luna’s plan…' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Sign in to save Luna’s plan' })).not.toBeInTheDocument();
+
+    rerender(<MemoryRouter><HousingActionPlan {...props} backendCaseId={undefined} signedIn onSavePlan={vi.fn()} saveStatus="error" /></MemoryRouter>);
+    expect(screen.getByText('We couldn’t save Luna’s plan.')).toBeInTheDocument();
+    expect(screen.getByText('Your plan is still here. Please try again.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeEnabled();
+    expect(screen.queryByText('Luna’s plan is saved.')).not.toBeInTheDocument();
+  });
+
+  it('keeps deterministic paths visible when only the backend intervention plan succeeds', async () => {
     vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('paths unavailable'));
     vi.spyOn(caseApi, 'getPlan').mockResolvedValue({
       caseId: props.backendCaseId,
@@ -67,17 +81,16 @@ describe('HousingActionPlan backend fallback', () => {
       }],
     });
     render(<HousingActionPlan {...props} />);
-    const unavailable = await screen.findByRole('status');
-    expect(unavailable).toHaveTextContent('Server-ranked housing action');
-    expect(within(unavailable).getByRole('heading', { name: 'Path comparison is unavailable right now.' })).toBeInTheDocument();
+    expect(await screen.findByText('Stay in current housing with Luna')).toBeInTheDocument();
+    expect(screen.queryByText('Path comparison is unavailable right now.')).not.toBeInTheDocument();
   });
 
-  it('keeps the Product Pass 3 plan when the plan API fails', async () => {
+  it('keeps deterministic paths visible when the plan API fails', async () => {
     vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('paths unavailable'));
     vi.spyOn(caseApi, 'getPlan').mockRejectedValue(new Error('offline'));
     render(<HousingActionPlan {...props} />);
     await waitFor(() => expect(caseApi.getPlan).toHaveBeenCalled());
-    expect(screen.getByRole('heading', { name: 'Path comparison is unavailable right now.' })).toBeInTheDocument();
+    expect(screen.getByText('Stay in current housing with Luna')).toBeInTheDocument();
     expect(screen.getAllByRole('link', { name: 'Visit resource' })).toHaveLength(3);
   });
 
@@ -112,11 +125,12 @@ describe('HousingActionPlan backend fallback', () => {
     });
     const user = userEvent.setup();
     render(<HousingActionPlan {...props} />);
-    expect(await screen.findByRole('heading', { name: 'Luna’s options' })).toBeInTheDocument();
-    expect(screen.getByText('CONDITIONAL')).toBeInTheDocument();
-    expect(screen.getByText('Resolution has not been confirmed.')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Your Keep Luna Home Plan' })).toBeInTheDocument();
+    expect(screen.getByText('Conditional')).toBeInTheDocument();
+    expect(screen.queryByText('Resolution has not been confirmed.')).not.toBeInTheDocument();
     await explorePath(user, 'Stay in current housing with Luna');
     expect(screen.getByLabelText('Path detail for Stay in current housing with your pet')).toHaveTextContent('What is blocking it');
+    expect(screen.getByText('Resolution has not been confirmed.')).toBeInTheDocument();
   });
 
   it('adds an explanation asynchronously without replacing solver status', async () => {
@@ -145,7 +159,7 @@ describe('HousingActionPlan backend fallback', () => {
     render(<HousingActionPlan {...props} />);
     await explorePath(user, 'Move with Luna');
     expect(await screen.findByLabelText('Why this changes the path for Move with your pet')).toBeInTheDocument();
-    expect(screen.getAllByText('BLOCKED')).toHaveLength(2);
+    expect(screen.getAllByText('Blocked')).toHaveLength(2);
     expect(screen.getByText(/remain unknown, not available/)).toBeInTheDocument();
   });
 
@@ -204,15 +218,15 @@ describe('HousingActionPlan backend fallback', () => {
     expect(await screen.findByRole('heading', { name: 'The smallest change set we found' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Preview these changes' }));
     expect(await screen.findByText('Your actual case has not changed.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Path detail for Move with your pet')).toHaveTextContent('BLOCKED');
-    expect(screen.getByLabelText('Path detail for Move with your pet')).toHaveTextContent('FEASIBLE');
+    expect(screen.getByLabelText('Path detail for Move with your pet')).toHaveTextContent('Blocked');
+    expect(screen.getByLabelText('Path detail for Move with your pet')).toHaveTextContent('Feasible');
     expect(caseApi.getRetentionPaths).toHaveBeenLastCalledWith(props.backendCaseId, [
       'ALLOW_STAY_OR_MOVE', 'CONFIRM_PET_FRIENDLY_HOUSING', 'CONFIRM_MOVE_REQUIREMENTS',
     ]);
 
     await user.click(screen.getByRole('button', { name: 'Reset to current reality' }));
     await waitFor(() => expect(caseApi.getRetentionPaths).toHaveBeenLastCalledWith(props.backendCaseId, []));
-    expect((await screen.findAllByText('BLOCKED')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('Blocked')).length).toBeGreaterThan(0);
     expect(screen.queryByText('Your actual case has not changed.')).not.toBeInTheDocument();
   });
 

@@ -8,12 +8,23 @@ const interventionClaims: Record<string, EvidenceClaimCode[]> = {
   search_pet_friendly_housing: ['PET_FRIENDLY_HOUSING_BARRIER', 'HOUSING_SURRENDER_DRIVER'],
   seek_temporary_care_bridge: ['TEMPORARY_CARE_SUPPORT'],
   explore_general_pet_support: ['MULTI_FACTOR_SURRENDER'],
+  behavior_management_plan: ['BEHAVIOR_SURRENDER_DRIVER'], behavior_separation_support: ['BEHAVIOR_HELP_ACCESS', 'TEMPORARY_CARE_SUPPORT'],
+  qualified_behavior_support: ['BEHAVIOR_HELP_ACCESS'], lower_cost_service: ['FINANCIAL_SURRENDER_DRIVER'],
+  financial_assistance_search: ['FINANCIAL_SURRENDER_DRIVER'], lower_cost_veterinary_search: ['VETERINARY_COST_SUPPORT'],
+  veterinary_support_navigation: ['VETERINARY_COST_SUPPORT'], veterinary_transport_support: ['VETERINARY_COST_SUPPORT'],
+  temporary_caregiver: ['TEMPORARY_CARE_SUPPORT'], trusted_network_support: ['TEMPORARY_CARE_SUPPORT'], emergency_pet_support: ['TEMPORARY_CARE_SUPPORT'],
+  routine_modification: ['MULTI_FACTOR_SURRENDER'], shared_caregiving: ['MULTI_FACTOR_SURRENDER'],
+  household_transition_planning: ['MULTI_FACTOR_SURRENDER'], housing_transition_support: ['HOUSING_SURRENDER_DRIVER'],
 };
 
 const pathClaims: Record<string, EvidenceClaimCode[]> = {
   remain_in_current_housing: ['LANDLORD_HOUSING_BARRIER', 'HOUSING_SURRENDER_DRIVER'],
   temporary_care_bridge: ['TEMPORARY_CARE_SUPPORT', 'HOUSING_SURRENDER_DRIVER'],
   move_with_pet: ['PET_FRIENDLY_HOUSING_BARRIER', 'HOUSING_SURRENDER_DRIVER'],
+  manage_behavior_at_home: ['BEHAVIOR_SURRENDER_DRIVER'], behavior_support_bridge: ['BEHAVIOR_HELP_ACCESS', 'TEMPORARY_CARE_SUPPORT'], specialist_supported_retention: ['BEHAVIOR_HELP_ACCESS'],
+  reduce_immediate_expense: ['FINANCIAL_SURRENDER_DRIVER'], financial_support_bridge: ['FINANCIAL_SURRENDER_DRIVER'], lower_cost_alternative: ['FINANCIAL_SURRENDER_DRIVER'],
+  access_appropriate_care: ['VETERINARY_COST_SUPPORT'], veterinary_support_bridge: ['VETERINARY_COST_SUPPORT'], manage_treatment_burden: ['VETERINARY_COST_SUPPORT'],
+  temporary_crisis_care_bridge: ['TEMPORARY_CARE_SUPPORT'], trusted_network_bridge: ['TEMPORARY_CARE_SUPPORT'], keep_together_short_term_support: ['TEMPORARY_CARE_SUPPORT'],
 };
 
 const whyForClaim: Record<EvidenceClaimCode, string> = {
@@ -88,6 +99,8 @@ export const selectEvidenceForPath = (
     hasCost ? 'cost' : null,
     facts.primaryBarrier === 'medical' || contributors.has('medical') ? 'veterinary care' : null,
     facts.primaryBarrier === 'temporary_crisis' || contributors.has('temporary_crisis') ? 'temporary crisis' : null,
+    facts.primaryBarrier === 'time_capacity' || contributors.has('time_capacity') ? 'time and caregiving capacity' : null,
+    facts.primaryBarrier === 'circumstances' || contributors.has('circumstances') ? 'family or life change' : null,
   ].filter((value): value is string => Boolean(value));
 
   return {

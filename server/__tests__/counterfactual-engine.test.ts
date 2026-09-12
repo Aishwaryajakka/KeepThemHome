@@ -20,8 +20,8 @@ const luna = normalizeHousingCase(
 );
 
 describe('Counterfactual Explorer', () => {
-  it('uses a small trusted supported-change catalog', () => {
-    expect(supportedChangeCatalog.map(({ code }) => code)).toEqual([
+  it('uses a bounded trusted supported-change catalog for every domain', () => {
+    expect(supportedChangeCatalog.map(({ code }) => code)).toEqual(expect.arrayContaining([
       'ALLOW_STAY_OR_MOVE',
       'CONFIRM_HOUSING_RESOLUTION',
       'CONFIRM_BEHAVIOR_MITIGATION',
@@ -29,7 +29,10 @@ describe('Counterfactual Explorer', () => {
       'CONFIRM_UNDERLYING_ISSUE_RESOLUTION',
       'CONFIRM_PET_FRIENDLY_HOUSING',
       'CONFIRM_MOVE_REQUIREMENTS',
-    ]);
+      'CONFIRM_BEHAVIOR_MANAGEMENT', 'CONFIRM_COST_REDUCTION', 'CONFIRM_CARE_ACCESS',
+      'CONFIRM_CRISIS_TEMPORARY_CARE', 'CONFIRM_CARE_SUPPORT', 'CONFIRM_HOUSEHOLD_ADAPTATION',
+    ]));
+    expect(supportedChangeCatalog).toHaveLength(29);
     expect(MAX_UNLOCK_CHANGES).toBe(3);
   });
 

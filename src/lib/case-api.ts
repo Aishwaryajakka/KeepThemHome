@@ -212,7 +212,17 @@ export interface PathEvidenceResponse {
   evidence: PathEvidenceCard[];
 }
 
+export type CaseActionStatus = 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'NOT_POSSIBLE';
+export type NotPossibleReason = 'COST' | 'NO_AVAILABILITY' | 'NOT_ELIGIBLE' | 'NO_RESPONSE' | 'TIME' | 'TRANSPORTATION' | 'SAFETY' | 'HOUSING' | 'HOUSEHOLD' | 'OTHER';
+export interface CaseAction { id: string; caseId: string; pathKey: string; actionKey: string; interventionKey: string | null; relatedFact: string | null; title: string; description: string; status: CaseActionStatus; notPossibleReason: NotPossibleReason | null; resultNote: string | null; outcomeKey: string | null; createdAt: string; updatedAt: string; completedAt: string | null; }
+export interface CaseEvent { id: string; caseId: string; actionId: string | null; eventType: string; eventData: Record<string, string | null>; createdAt: string; }
+export interface RecommendedAction { key: string; pathKey: string; interventionKey?: string; relatedFact: string; title: string; description: string; outcomes: Array<{ key: string; label: string; factValue?: boolean }>; }
+export interface ActionsResponse { actions: CaseAction[]; events: CaseEvent[]; recommended: RecommendedAction[]; }
+
 const explanationCache = new Map<string, Promise<ExplanationResponse>>();
+
+export const clearCaseApiClientCache = () => explanationCache.clear();
+export const SAVED_PLANS_CHANGED_EVENT = 'keep-them-home:saved-plans-changed';
 
 let authTokenProvider: (() => Promise<string | null>) | undefined;
 export const configureAuthTokenProvider = (provider: (() => Promise<string | null>) | undefined) => {
@@ -259,6 +269,14 @@ export const caseApi = {
     requestJson(`/api/cases/${id}/outcomes`, {
       method: 'POST', body: JSON.stringify({ status }),
     }),
+
+  getActions: async (id: string) => requestJson<ActionsResponse>(`/api/cases/${id}/actions`),
+  addAction: async (id: string, pathKey: string, actionKey: string) =>
+    (await requestJson<{ action: CaseAction }>(`/api/cases/${id}/actions`, { method: 'POST', body: JSON.stringify({ pathKey, actionKey }) })).action,
+  updateAction: async (id: string, actionId: string, input: { status: CaseActionStatus; notPossibleReason?: NotPossibleReason | null; resultNote?: string | null }) =>
+    (await requestJson<{ action: CaseAction }>(`/api/cases/${id}/actions/${actionId}`, { method: 'PATCH', body: JSON.stringify(input) })).action,
+  recordActionOutcome: async (id: string, actionId: string, outcomeKey: string, resultNote?: string | null) =>
+    requestJson<{ action: CaseAction; changedFact: { field: string; value: boolean } | null; paths: RetentionPathResult[]; transitions: Array<{ pathKey: string; title: string; from: RetentionPathStatus; to: RetentionPathStatus }> }>(`/api/cases/${id}/actions/${actionId}/outcome`, { method: 'POST', body: JSON.stringify({ outcomeKey, resultNote }) }),
 
   getPlan: async (id: string) =>
     requestJson<CasePlan>(`/api/cases/${id}/plan`, { method: 'POST' }),

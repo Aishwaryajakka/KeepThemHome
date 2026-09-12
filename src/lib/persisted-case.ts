@@ -36,8 +36,14 @@ export const restorePersistedCase = (saved: SavedCaseDetail): AssessmentCaseStat
       seriousness: value('behavior_seriousness'), alreadyTried: value('behavior_already_tried'),
       helpBarrier: value('behavior_help_barrier'),
     },
+    domain: {
+      primarySupportPossible: value('primary_support_possible'),
+      bridgeAvailable: value('bridge_available'),
+      alternativeAvailable: value('alternative_available'),
+      urgency: saved.case.urgency ?? value('urgency'),
+    },
     outcome: latestOutcome === 'still_trying' ? 'stillTrying' : latestOutcome === 'rehoming_help' ? 'rehomingHelp' : latestOutcome === 'keeping' ? 'keeping' : '',
-    currentScreen: rootCause === 'housing' ? 'housing-plan' : rootCause === 'behavior' ? 'behavior-complete' : 'root-cause',
+    currentScreen: rootCause ? 'housing-plan' : 'root-cause',
   };
   return isAssessmentCaseState(candidate) ? candidate : undefined;
 };

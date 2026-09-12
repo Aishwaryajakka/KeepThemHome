@@ -1,4 +1,4 @@
-import type { HousingGoal, HousingSituation, HousingTiming } from '@/types/assessment';
+import type { BarrierType, HousingGoal, HousingSituation, HousingTiming } from '@/types/assessment';
 
 export type ResourceCategory =
   | 'housing-search'
@@ -157,6 +157,17 @@ export const matchHousingResources = (
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .slice(0, limit)
     .map(({ resource }) => resource);
+};
+
+export const matchResources = (barrier: BarrierType, situation: HousingSituation, urgency: HousingTiming, goal: HousingGoal, limit = 3): SupportResource[] => {
+  if (barrier === 'housing') return matchHousingResources(situation, urgency, goal, limit);
+  const preferred: Record<Exclude<BarrierType, 'housing'>, ResourceCategory[]> = {
+    behavior: ['general-support', 'temporary-care', 'financial-support'], cost: ['financial-support', 'general-support', 'temporary-care'],
+    medical: ['general-support', 'temporary-care', 'financial-support'], temporary_crisis: ['temporary-care', 'general-support', 'financial-support'],
+    time_capacity: ['general-support', 'temporary-care', 'financial-support'], circumstances: ['temporary-care', 'general-support', 'housing-search'],
+  };
+  return supportResources.map((resource, index) => ({ resource, index, score: 100 - Math.max(0, preferred[barrier].indexOf(resource.category)) * 20 }))
+    .sort((a, b) => b.score - a.score || a.index - b.index).slice(0, limit).map(({ resource }) => resource);
 };
 
 export const responsibleRehomingResources = supportResources.filter(({ id }) =>

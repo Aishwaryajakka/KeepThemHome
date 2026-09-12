@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MyPetsPage from '@/pages/MyPetsPage';
-import { caseApi } from '@/lib/case-api';
+import { caseApi, SAVED_PLANS_CHANGED_EVENT } from '@/lib/case-api';
 
 let authState = { configured: true, loaded: true, signedIn: true, openSignIn: vi.fn(), signOut: vi.fn() };
 
@@ -34,20 +34,41 @@ describe('My Pets continuation dashboard', () => {
   it('distinguishes signed-out and request-error states', async () => {
     authState = { ...authState, signedIn: false };
     const { unmount } = renderPage();
-    expect(screen.getByText('Sign in to see saved plans.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Your saved plans live here.' })).toBeInTheDocument();
+    expect(screen.getByText('Sign in to return to plans you’ve saved for your pets.')).toBeInTheDocument();
     unmount();
 
     authState = { ...authState, signedIn: true };
     vi.spyOn(caseApi, 'listCases').mockRejectedValue(new Error('Unauthorized'));
     renderPage();
     expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t load your saved plans.');
+    expect(screen.getByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
+
+  it('shows an intentional loading state', () => {
+    vi.spyOn(caseApi, 'listCases').mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    expect(screen.getByRole('status', { name: 'Loading saved plans' })).toBeInTheDocument();
   });
 
   it('shows the warm empty state', async () => {
     vi.spyOn(caseApi, 'listCases').mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByRole('heading', { name: 'Your saved plans will appear here.' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'No saved plans yet.' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Find options for my pet' })).toBeInTheDocument();
+  });
+
+  it('refetches saved plans when a successful save invalidates My Pets', async () => {
+    const listCases = vi.spyOn(caseApi, 'listCases').mockResolvedValue([]);
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'No saved plans yet.' })).toBeInTheDocument();
+
+    listCases.mockResolvedValue([savedLuna] as never);
+    vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('Path unavailable'));
+    window.dispatchEvent(new Event(SAVED_PLANS_CHANGED_EVENT));
+
+    expect(await screen.findByRole('heading', { name: 'Luna' })).toBeInTheDocument();
+    expect(listCases).toHaveBeenCalledTimes(2);
   });
 
   it('shows a saved pet with its trusted current path and blockers', async () => {
@@ -69,7 +90,7 @@ describe('My Pets continuation dashboard', () => {
     renderPage();
     expect(await screen.findByRole('heading', { name: 'Luna' })).toBeInTheDocument();
     expect(screen.getByText('Stay in current housing with your pet')).toBeInTheDocument();
-    expect(screen.getByText('CONDITIONAL')).toBeInTheDocument();
+    expect(screen.getByText('Conditional')).toBeInTheDocument();
     expect(screen.getByText('2 blockers remaining')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Continue Luna’s plan/ })).toBeInTheDocument();
   });

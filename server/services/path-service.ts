@@ -27,8 +27,6 @@ export const generateRetentionPaths = async (caseId: string, appliedCodes: Suppo
   if (!actualFacts) return undefined;
   const appliedChanges = materializeSupportedChanges(actualFacts, appliedCodes);
   const facts = applySupportedChanges(actualFacts, appliedChanges);
-  if (facts.primaryBarrier !== 'housing') return { caseId, paths: [] };
-
   const paths = solveRetentionPaths(facts);
   const linked = await db.select({
     interventionKey: interventions.key,

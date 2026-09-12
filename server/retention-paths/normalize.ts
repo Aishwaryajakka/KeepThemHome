@@ -31,6 +31,14 @@ export const normalizeHousingCase = (
     underlyingIssueResolutionPossible: explicitBoolean(factorValue('underlying_issue_resolution_possible')),
     petFriendlyHousingAvailable: explicitBoolean(factorValue('pet_friendly_housing_available')),
     moveRequirementsMet: explicitBoolean(factorValue('move_requirements_met')),
+    primarySupportPossible: explicitBoolean(factorValue('primary_support_possible')),
+    bridgeAvailable: explicitBoolean(factorValue('bridge_available')),
+    alternativeAvailable: explicitBoolean(factorValue('alternative_available')),
+    safetyManageable: explicitBoolean(factorValue('safety_manageable')),
+    costReductionPossible: explicitBoolean(factorValue('cost_reduction_possible')),
+    careAccessPossible: explicitBoolean(factorValue('care_access_possible')),
+    careSupportAvailable: explicitBoolean(factorValue('care_support_available')),
+    householdAdaptationPossible: explicitBoolean(factorValue('household_adaptation_possible')),
   };
 
   return {

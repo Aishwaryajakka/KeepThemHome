@@ -58,7 +58,7 @@ describe('production-safe synthetic demo contract', () => {
     const secondResources = verifiedCatalogManifest();
     expect(firstResources).toEqual(secondResources);
     expect(new Set(firstResources.resourceSlugs).size).toBe(8);
-    expect(new Set(firstResources.interventionKeys).size).toBe(5);
+    expect(new Set(firstResources.interventionKeys).size).toBe(20);
   });
 
   it('runs the read-only production core checks and expects the complete schema', () => {

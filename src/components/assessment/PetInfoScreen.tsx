@@ -45,6 +45,7 @@ export const PetInfoScreen: React.FC<PetInfoScreenProps> = ({
   const [intakeFailed, setIntakeFailed] = useState(false);
   const [guidedOpen, setGuidedOpen] = useState(false);
   const [goal, setGoal] = useState<HousingGoal>('');
+  const [showDemoIntro, setShowDemoIntro] = useState(Boolean(demoStory));
   const isContinueEnabled = petName.trim().length > 0 && petType !== '';
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export const PetInfoScreen: React.FC<PetInfoScreenProps> = ({
     setIntakeFailed(false);
     setGuidedOpen(false);
     setGoal('');
+    setShowDemoIntro(Boolean(demoStory));
   }, [demoStory]);
 
   const handleStorySubmit = async (event: React.FormEvent) => {
@@ -75,6 +77,8 @@ export const PetInfoScreen: React.FC<PetInfoScreenProps> = ({
   const canConfirm = Boolean(intakeResult && (!needsGoal || goal));
   const petLabel = intakeResult?.extraction.petName ?? 'your pet';
 
+  if (showDemoIntro) return <div className="mx-auto flex w-full max-w-4xl flex-1 items-center px-4 py-12 sm:px-6 md:px-8"><section className="w-full rounded-3xl border border-[var(--sage)]/45 bg-white/80 p-7 shadow-[0_22px_65px_rgba(46,84,64,.09)] sm:p-12" aria-labelledby="meet-luna-heading"><p className="text-xs font-bold uppercase tracking-[.2em] text-[var(--forest)]/65">Luna demo</p><h1 id="meet-luna-heading" className="mt-3 font-serif text-5xl text-[var(--forest)] sm:text-6xl">Meet Luna</h1><p className="mt-5 max-w-2xl text-lg leading-relaxed text-[var(--charcoal)]/80 sm:text-xl">Luna’s landlord is threatening eviction because she barks while her owner is at work. They have about a week and cannot afford a trainer.</p><Button type="button" onClick={() => setShowDemoIntro(false)} className="brand-focus mt-8 min-h-12 rounded-full bg-[var(--forest)] px-7 text-[var(--cream)]">See what Keep Them Home understands <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></Button></section></div>;
+
   return <div className="mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-14 md:px-8 md:py-16">
     <button type="button" onClick={onBack} className="brand-focus mb-8 -ml-1 inline-flex items-center gap-1.5 rounded px-1 text-sm font-medium text-[var(--text-muted)] hover:text-[var(--forest)]"><ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back to homepage</button>
     <div className="mb-8"><p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--forest)]/70">Your situation</p><h1 className="text-balance font-serif text-4xl leading-tight text-[var(--forest)] sm:text-5xl">Tell us what’s happening.</h1><p className="mt-4 text-lg leading-relaxed text-[var(--charcoal)]/75">Share the situation in your own words. We’ll only ask about what we still need to understand.</p></div>
@@ -90,10 +94,10 @@ export const PetInfoScreen: React.FC<PetInfoScreenProps> = ({
       {intakeFailed && <div className="mt-5 rounded-lg bg-[var(--warm-sand)]/25 p-4" role="status"><p className="text-sm text-[var(--charcoal)]">We couldn’t fully interpret that. You can answer a few questions instead.</p><button type="button" onClick={() => setGuidedOpen(true)} className="brand-focus mt-2 rounded text-sm font-semibold text-[var(--forest)] underline underline-offset-4">Answer step by step</button></div>}
 
       {intakeResult && <div className="mt-6 border-t border-[var(--border-warm)] pt-6" aria-live="polite">
-        <h2 className="font-serif text-3xl text-[var(--forest)]">Here’s what we understood.</h2>
+        <h2 className="font-serif text-3xl text-[var(--forest)]">Here’s what we understood.</h2><p className="mt-2 max-w-2xl text-base leading-relaxed text-[var(--text-muted)]">We pulled out the pressures that seem to matter most. You can correct anything that doesn’t look right.</p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">{factRows(intakeResult).map((fact) => <li key={fact} className="rounded-xl border border-[var(--sage)]/40 bg-[var(--sage)]/10 p-4"><p className="font-medium text-[var(--charcoal)]">{fact}</p><p className="mt-1 text-sm font-semibold text-[var(--forest)]">From your story</p></li>)}</ul>
         {needsGoal && <fieldset className="mt-8">
-          <legend className="font-serif text-2xl text-[var(--forest)]">One thing we still need to know</legend><p className="mt-2 text-lg font-medium text-[var(--charcoal)]">What are you open to right now?</p><p className="mt-1 text-sm text-[var(--text-muted)]">This helps us evaluate which paths are actually possible.</p>
+          <legend className="text-sm font-bold text-[var(--forest)]">One thing we still need to know</legend><p className="mt-3 font-serif text-2xl text-[var(--charcoal)]">What are you open to right now?</p><p className="mt-1 text-sm text-[var(--text-muted)]">This helps us evaluate which paths are actually possible.</p>
           <div className="mt-4 space-y-3">{goalOptions.map((option) => { const selected = goal === option.value; const label = option.value === 'Move' ? `I’m open to moving with ${petLabel}` : option.label; return <ChoiceCard key={option.value} name="intake-goal" checked={selected} onChange={() => setGoal(option.value)}>{label}</ChoiceCard>; })}</div>
           <p className="mt-3 text-sm font-semibold text-[var(--text-muted)]">{goal ? 'Confirmed by you' : 'We still need to know'}</p>
         </fieldset>}

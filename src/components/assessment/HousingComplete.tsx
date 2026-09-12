@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import type { BarrierType, BehaviorBarrier, BehaviorConcern, HousingSituation, HousingTiming, HousingGoal } from '@/types/assessment';
+import { factorLabel } from '@/lib/presentation';
 
 interface HousingCompleteProps {
   petName: string;
@@ -38,11 +39,6 @@ export const HousingComplete: React.FC<HousingCompleteProps> = ({
   onRestart,
 }) => {
   const displayName = petName.trim() || 'your pet';
-  const barrierLabel = (barrier: BarrierType) => ({
-    housing: 'Housing', behavior: 'Behavior', cost: 'Money / financial strain', medical: 'Veterinary / pet health',
-    temporary_crisis: 'Temporary crisis', time_capacity: 'Time / capacity', circumstances: 'Family / life change',
-  })[barrier];
-
   return (
     <div className="py-8 sm:py-14 md:py-20 px-4 sm:px-6 md:px-8 max-w-3xl mx-auto w-full">
       {/* Subtle Back Button */}
@@ -59,13 +55,13 @@ export const HousingComplete: React.FC<HousingCompleteProps> = ({
       <div className="mb-8 sm:mb-10">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E3C9B2]/35 border border-[#E3C9B2] text-[#2E5440] text-xs font-semibold tracking-wider uppercase mb-4">
           <CheckCircle2 className="w-3.5 h-3.5" />
-          <span>ASSESSMENT COMPLETE</span>
+          <span>Assessment complete</span>
         </div>
         <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl text-[#2E5440] font-normal leading-tight tracking-tight mb-3 sm:mb-4 text-balance">
-          We found three possible paths for {displayName}.
+          We have enough to evaluate {displayName}’s options.
         </h1>
         <p className="font-sans text-base sm:text-lg text-[#2D2D2D]/80 leading-relaxed text-pretty">
-          Next, compare what is possible now, what is blocked, and what could make another path work.
+          We’re comparing the paths that fit what you told us. Next, you’ll see what is possible now, what is blocked, and what could make another path work.
         </p>
       </div>
 
@@ -91,7 +87,7 @@ export const HousingComplete: React.FC<HousingCompleteProps> = ({
           {contributingBarriers.length > 0 && (
             <div className="space-y-1">
               <span className="text-xs font-semibold uppercase tracking-wider text-[#2E5440]/70 font-sans">Also affecting the situation</span>
-              <p className="text-base font-medium text-[#2D2D2D]">{contributingBarriers.map(barrierLabel).join(', ')}</p>
+              <p className="text-base font-medium text-[#2D2D2D]">{contributingBarriers.map(factorLabel).join(', ')}</p>
             </div>
           )}
 

@@ -136,6 +136,37 @@ export const recommendations = pgTable('recommendations', {
     .on(table.caseId, table.factsFingerprint, table.interventionKey),
 ]);
 
+export const caseActions = pgTable('case_actions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  caseId: uuid('case_id').notNull().references(() => cases.id, { onDelete: 'cascade' }),
+  pathKey: text('path_key').notNull(),
+  actionKey: text('action_key').notNull(),
+  interventionKey: text('intervention_key'),
+  relatedFact: text('related_fact'),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  status: text('status').notNull().default('PLANNED'),
+  notPossibleReason: text('not_possible_reason'),
+  resultNote: text('result_note'),
+  outcomeKey: text('outcome_key'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+}, (table) => [
+  index('case_actions_case_id_idx').on(table.caseId),
+  index('case_actions_status_idx').on(table.status),
+  uniqueIndex('case_actions_case_path_action_uidx').on(table.caseId, table.pathKey, table.actionKey),
+]);
+
+export const caseEvents = pgTable('case_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  caseId: uuid('case_id').notNull().references(() => cases.id, { onDelete: 'cascade' }),
+  actionId: uuid('action_id').references(() => caseActions.id, { onDelete: 'set null' }),
+  eventType: text('event_type').notNull(),
+  eventData: jsonb('event_data').$type<Record<string, string | null>>().notNull().default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [index('case_events_case_id_idx').on(table.caseId), index('case_events_created_at_idx').on(table.createdAt)]);
+
 export type CaseRecord = typeof cases.$inferSelect;
 export type NewCase = typeof cases.$inferInsert;
 export type CaseFactorRecord = typeof caseFactors.$inferSelect;
@@ -147,3 +178,5 @@ export type InterventionRecord = typeof interventions.$inferSelect;
 export type RecommendationRecord = typeof recommendations.$inferSelect;
 export type UserRecord = typeof users.$inferSelect;
 export type PetRecord = typeof pets.$inferSelect;
+export type CaseActionRecord = typeof caseActions.$inferSelect;
+export type CaseEventRecord = typeof caseEvents.$inferSelect;

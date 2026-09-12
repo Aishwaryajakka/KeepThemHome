@@ -9,15 +9,14 @@ interface AssessmentProgressProps {
 export const AssessmentProgress: React.FC<AssessmentProgressProps> = ({
   currentStep,
   totalSteps,
-  label,
+  label: _label,
 }) => {
+  const phase = currentStep === 1 ? 'Understanding the situation' : currentStep === totalSteps ? 'Reviewing options' : 'Clarifying what matters';
   return (
     <div className="mb-6 space-y-2">
-      <div className="flex items-center justify-between text-xs sm:text-sm font-semibold tracking-widest uppercase text-[#2E5440] font-sans">
-        <span>{label}</span>
-        <span className="text-[#2D2D2D]/50 font-normal">
-          {currentStep} of {totalSteps}
-        </span>
+      <div className="flex items-center justify-between text-xs font-semibold text-[#2E5440] sm:text-sm">
+        <span>{phase}</span>
+        <span className="sr-only">{currentStep} of {totalSteps}</span>
       </div>
       {/* Subtle Progress Bar */}
       <div className="w-full h-1.5 bg-[#A7B89F]/25 rounded-full overflow-hidden flex gap-1">

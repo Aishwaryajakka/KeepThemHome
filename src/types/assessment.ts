@@ -84,6 +84,7 @@ export type BehaviorBarrier =
   | '';
 
 export type OutcomeType = 'keeping' | 'stillTrying' | 'rehomingHelp' | '';
+export type TriStateAnswer = 'yes' | 'no' | 'unknown' | '';
 
 export interface AssessmentState {
   petName: string;
@@ -120,4 +121,6 @@ export type AssessmentScreen =
   | 'behavior-2'
   | 'behavior-3'
   | 'behavior-4'
-  | 'behavior-complete';
+  | 'behavior-complete'
+  | 'general-plan'
+  | 'domain-details';

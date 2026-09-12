@@ -61,6 +61,15 @@ export const structuredFactors = (caseState: AssessmentCaseState): FactorInput[]
     factorValue: costActive ? caseState.costConstraint || 'Explicitly identified' : null,
     role: 'constraint', source: 'structured',
   });
+  for (const [factorType, factorValue] of [
+    ['primary_support_possible', caseState.domain.primarySupportPossible],
+    ['bridge_available', caseState.domain.bridgeAvailable],
+    ['alternative_available', caseState.domain.alternativeAvailable],
+    ['safety_manageable', caseState.rootCause === 'behavior' && caseState.behavior.seriousness ? (caseState.behavior.seriousness === 'There’s an immediate safety concern' ? 'no' : 'yes') : ''],
+  ] as const) factors.push({ factorType, factorValue: factorValue || null, role: 'constraint', source: 'structured' });
+  if (caseState.rootCause !== 'housing' && caseState.domain.urgency) factors.push({
+    factorType: 'urgency', factorValue: caseState.domain.urgency, role: 'constraint', source: 'structured',
+  });
   return factors;
 };
 
@@ -76,7 +85,7 @@ export const useCaseSync = (
     const status = (outcomeStatus(caseState.outcome) ?? 'active') as ApiCaseStatus;
     const payload = {
       primaryBarrier: caseState.rootCause || null,
-      urgency: caseState.housing.urgency || null,
+      urgency: (caseState.rootCause === 'housing' ? caseState.housing.urgency : caseState.domain.urgency) || null,
       goal: caseState.housing.goal || null,
       currentStatus: status,
     };

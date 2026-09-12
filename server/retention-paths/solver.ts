@@ -14,11 +14,22 @@ const evaluatePath = (
   facts: NormalizedHousingCase,
   catalogIndex: number,
 ): PathEvaluation & { catalogIndex: number } => {
-  const requirements = path.requirements.filter((requirement) =>
+  const contributors = new Set(facts.contributingBarriers ?? []);
+  const sharedRequirements: RetentionPathDefinition['requirements'] = path.domain === 'housing' ? [] : [
+    ...(contributors.has('housing') ? [{ key: 'contributing_housing', fact: 'housingResolutionPossible' as const, requiredValue: true as const, label: 'The contributing housing pressure still needs a workable resolution.', requiredCondition: 'Housing pressure can be addressed' }] : []),
+    ...(contributors.has('behavior') ? [{ key: 'contributing_behavior', fact: 'behaviorMitigationAvailable' as const, requiredValue: true as const, label: 'The contributing behavior pressure still needs a workable mitigation.', requiredCondition: 'Behavior mitigation is available' }] : []),
+    ...(contributors.has('cost') ? [{ key: 'contributing_cost', fact: 'costReductionPossible' as const, requiredValue: true as const, label: 'The contributing cost pressure still needs an affordable route.', requiredCondition: 'Cost pressure can be reduced' }] : []),
+    ...(contributors.has('medical') ? [{ key: 'contributing_medical', fact: 'careAccessPossible' as const, requiredValue: true as const, label: 'Access to appropriate veterinary care still needs confirmation.', requiredCondition: 'Appropriate care is accessible' }] : []),
+    ...(contributors.has('temporary_crisis') ? [{ key: 'contributing_crisis', fact: 'temporaryCareAvailable' as const, requiredValue: true as const, label: 'Temporary support for the crisis has not been confirmed.', requiredCondition: 'Temporary crisis support is available' }] : []),
+    ...(contributors.has('time_capacity') ? [{ key: 'contributing_capacity', fact: 'careSupportAvailable' as const, requiredValue: true as const, label: 'Caregiving support for the time pressure has not been confirmed.', requiredCondition: 'Caregiving support is available' }] : []),
+    ...(contributors.has('circumstances') ? [{ key: 'contributing_life_change', fact: 'householdAdaptationPossible' as const, requiredValue: true as const, label: 'A workable response to the household change has not been confirmed.', requiredCondition: 'Household adaptation is possible' }] : []),
+  ];
+  const applicableRequirements = [...path.requirements, ...sharedRequirements].filter((requirement) =>
     !requirement.appliesWhen
       || facts.constraints[requirement.appliesWhen.fact] === requirement.appliesWhen.value);
+  const requirements = Array.from(new Map(applicableRequirements.map((requirement) => [requirement.fact, requirement])).values());
   const blockers: PathBlocker[] = requirements.flatMap((requirement) => {
-    const currentValue = facts.constraints[requirement.fact];
+    const currentValue = facts.constraints[requirement.fact] ?? 'unknown';
     if (currentValue === true) return [];
     return [{
       code: currentValue === false ? 'KNOWN_CONSTRAINT_CONFLICT' : 'UNKNOWN_REQUIREMENT',
@@ -37,7 +48,7 @@ const evaluatePath = (
     || (path.goalAlignment === 'move' && facts.constraints.goalSupportsMove === true)
     || path.goalAlignment === 'either';
   const reasonCodes = [
-    'HOUSING_BARRIER',
+    `${(facts.primaryBarrier ?? 'GENERAL').toUpperCase()}_BARRIER`,
     ...(facts.constraints.behaviorContributor === true ? ['BEHAVIOR_CONTRIBUTOR'] : []),
     ...(facts.costConstraint ? ['COST_CONSTRAINT'] : []),
     ...(facts.urgency === 'This week' || facts.urgency === 'Today or within 48 hours' ? ['URGENT_CASE'] : []),
@@ -74,6 +85,7 @@ export const solveRetentionPaths = (
   catalog: RetentionPathDefinition[] = retentionPathCatalog,
 ): PathEvaluation[] =>
   catalog
+    .filter((path) => !path.domain || path.domain === facts.primaryBarrier)
     .map((path, index) => evaluatePath(path, facts, index))
     .sort((a, b) => b.rankScore - a.rankScore || a.catalogIndex - b.catalogIndex)
     .map(({ catalogIndex: _catalogIndex, ...path }) => path);

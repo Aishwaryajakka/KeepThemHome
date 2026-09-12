@@ -43,11 +43,15 @@ import {
   type AssessmentCaseState,
 } from '@/lib/assessment-session';
 import { structuredFactors, useCaseSync } from '@/hooks/use-case-sync';
-import { caseApi } from '@/lib/case-api';
+import { caseApi, SAVED_PLANS_CHANGED_EVENT } from '@/lib/case-api';
 import { useAppAuth } from '@/auth/AuthProvider';
 import { mergeIntakeResult } from '@/lib/intake-merge';
 import type { IntakeResult } from '@/lib/intake-api';
 import { useDemoMode } from '@/demo/DemoModeProvider';
+import AuthenticatedHome from '@/components/AuthenticatedHome';
+import DomainDetailsScreen from '@/components/assessment/DomainDetailsScreen';
+import { restorePersistedCase } from '@/lib/persisted-case';
+import { useNavigate } from 'react-router-dom';
 
 type AssessmentAction =
   | { type: 'update'; patch: Partial<AssessmentCaseState> }
@@ -74,11 +78,13 @@ const lunaDemoExtraction: IntakeResult = {
 export const HomePage: React.FC = () => {
   const [caseState, dispatch] = useReducer(assessmentReducer, undefined, loadAssessmentCase);
   const auth = useAppAuth();
+  const navigate = useNavigate();
   const demo = useDemoMode();
   const demoWasActive = useRef(false);
   const [saveRequested, setSaveRequested] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const mainContentRef = useRef<HTMLElement>(null);
+  const saveInFlight = useRef(false);
   const {
     currentScreen,
     petName,
@@ -95,6 +101,7 @@ export const HomePage: React.FC = () => {
       helpBarrier: behaviorBarrier,
     },
     outcome: selectedOutcome,
+    domain: domainAnswers,
   } = caseState;
 
   const updateCase = <K extends keyof AssessmentCaseState>(key: K, value: AssessmentCaseState[K]) => {
@@ -111,7 +118,7 @@ export const HomePage: React.FC = () => {
     if (demo.active) {
       demoWasActive.current = true;
       dispatch({ type: 'reset' });
-      dispatch({ type: 'update', patch: { currentScreen: 'pet-info' } });
+      dispatch({ type: 'update', patch: { currentScreen: 'pet-info', petName: 'Luna', petType: 'dog' } });
       setSaveRequested(false);
       setSaveStatus('idle');
     } else if (demoWasActive.current) {
@@ -123,30 +130,44 @@ export const HomePage: React.FC = () => {
   }, [demo.active]);
 
   const saveCurrentPlan = useCallback(async () => {
-    if (!caseState.petName.trim() || !caseState.petType || !caseState.rootCause) return;
+    if (saveInFlight.current || !auth.loaded || !auth.signedIn || !caseState.petName.trim() || !caseState.petType || !caseState.rootCause) return;
+    saveInFlight.current = true;
     setSaveStatus('saving');
     try {
-      const pet = await caseApi.createPet({ name: caseState.petName.trim(), type: caseState.petType });
-      const savedCase = await caseApi.createCase({
-        petId: pet.id, primaryBarrier: caseState.rootCause,
-        urgency: caseState.housing.urgency || null, goal: caseState.housing.goal || null,
-        currentStatus: 'active',
-      });
-      await caseApi.recordFactors(savedCase.id, structuredFactors({ ...caseState, backendCaseId: savedCase.id }));
-      retainBackendCaseId(savedCase.id);
+      let persistedCaseId = caseState.backendCaseId;
+      const caseInput = {
+        primaryBarrier: caseState.rootCause,
+        urgency: (caseState.rootCause === 'housing' ? caseState.housing.urgency : caseState.domain.urgency) || null,
+        goal: caseState.housing.goal || null,
+        currentStatus: 'active' as const,
+      };
+      if (persistedCaseId) {
+        await caseApi.updateCase(persistedCaseId, caseInput);
+      } else {
+        const pet = await caseApi.createPet({ name: caseState.petName.trim(), type: caseState.petType });
+        const savedCase = await caseApi.createCase({ petId: pet.id, ...caseInput });
+        persistedCaseId = savedCase.id;
+        await caseApi.updateCase(persistedCaseId, caseInput);
+      }
+      await caseApi.recordFactors(persistedCaseId, structuredFactors({ ...caseState, backendCaseId: persistedCaseId }));
+      retainBackendCaseId(persistedCaseId);
+      window.dispatchEvent(new Event(SAVED_PLANS_CHANGED_EVENT));
       setSaveStatus('saved');
       setSaveRequested(false);
     } catch {
       setSaveStatus('error');
       setSaveRequested(false);
+    } finally {
+      saveInFlight.current = false;
     }
-  }, [caseState, retainBackendCaseId]);
+  }, [auth.loaded, auth.signedIn, caseState, retainBackendCaseId]);
 
   useEffect(() => {
     if (saveRequested && auth.signedIn && saveStatus !== 'saving') void saveCurrentPlan();
   }, [auth.signedIn, saveCurrentPlan, saveRequested, saveStatus]);
 
   const handleSavePlan = () => {
+    if (!auth.loaded || saveInFlight.current) return;
     if (!auth.configured) {
       setSaveStatus('error');
       return;
@@ -199,6 +220,23 @@ export const HomePage: React.FC = () => {
     setCurrentScreen('home');
   };
 
+  const handleExit = () => {
+    if (demo.active) demo.reset();
+    window.history.replaceState({ [HISTORY_STATE_KEY]: 'home' }, '', '/');
+    dispatch({ type: 'reset' });
+    setSaveRequested(false);
+    setSaveStatus('idle');
+  };
+
+  const handleContinueSavedCase = async (caseId: string) => {
+    try {
+      const restored = restorePersistedCase(await caseApi.getCase(caseId));
+      if (!restored) return;
+      window.history.pushState({ [HISTORY_STATE_KEY]: restored.currentScreen }, '', window.location.href);
+      dispatch({ type: 'update', patch: restored });
+    } catch { /* The authenticated home keeps its current recoverable state. */ }
+  };
+
   const handleContinueToRootCause = () => {
     setCurrentScreen('root-cause');
   };
@@ -208,7 +246,7 @@ export const HomePage: React.FC = () => {
     const nextState = confirmedGoal ? {
       ...merged,
       housing: { ...merged.housing, goal: confirmedGoal },
-      currentScreen: merged.rootCause === 'housing' ? 'housing-plan' as const : merged.currentScreen,
+      currentScreen: merged.rootCause === 'housing' ? 'housing-complete' as const : merged.currentScreen,
     } : merged;
     window.history.pushState({ [HISTORY_STATE_KEY]: nextState.currentScreen }, '', window.location.href);
     dispatch({ type: 'update', patch: nextState });
@@ -224,6 +262,7 @@ export const HomePage: React.FC = () => {
       selectedFactors: factors,
       rootCause: primary,
       contributingBarriers: factors.filter((factor) => factor !== primary),
+      costConstraint: factors.includes('cost') ? caseState.costConstraint || 'Cost is affecting available options' : '',
     } });
   };
 
@@ -232,8 +271,9 @@ export const HomePage: React.FC = () => {
       rootCause: primary,
       contributingBarriers: selectedFactors.filter((factor) => factor !== primary),
     } });
-    if (selectedFactors.includes('behavior')) setCurrentScreen('behavior-1');
+    if (primary === 'behavior') setCurrentScreen('behavior-1');
     else if (primary === 'housing') setCurrentScreen('housing-1');
+    else setCurrentScreen('domain-details');
   };
 
   const handleBackToRootCause = () => {
@@ -283,7 +323,7 @@ export const HomePage: React.FC = () => {
   };
 
   const handleContinueToBehavior3 = () => {
-    setCurrentScreen('behavior-3');
+    setCurrentScreen('domain-details');
   };
 
   const handleBackToBehavior2 = () => {
@@ -303,7 +343,10 @@ export const HomePage: React.FC = () => {
   };
 
   const handleContinueAfterBehavior = () => {
-    if (selectedRootCause !== 'housing') return;
+    if (selectedRootCause !== 'housing') {
+      setCurrentScreen('domain-details');
+      return;
+    }
     if (!housingSituation) setCurrentScreen('housing-1');
     else if (!housingTiming) setCurrentScreen('housing-2');
     else if (!housingGoal) setCurrentScreen('housing-3');
@@ -335,10 +378,6 @@ export const HomePage: React.FC = () => {
   };
 
   // Outcome Flow Navigation
-  const handleTryPlan = () => {
-    setCurrentScreen('outcome-checkin');
-  };
-
   const handleBackToHousingPlan = () => {
     setCurrentScreen('housing-plan');
   };
@@ -376,21 +415,23 @@ export const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F2] text-[#2D2D2D] selection:bg-[#E3C9B2]/60 selection:text-[#2E5440]">
       {/* Header */}
-      <Header onCtaClick={handleBackToHome} onStart={currentScreen === 'home' ? handleStartAssessment : undefined} />
+      <Header
+        variant={currentScreen === 'home' ? 'marketing' : 'product'}
+            onCtaClick={handleExit}
+        onStart={currentScreen === 'home' ? handleStartAssessment : undefined}
+        petName={petName}
+        petType={petType}
+        factors={selectedFactors}
+        urgency={housingTiming}
+        saved={saveStatus === 'saved'}
+      />
 
       {/* Main Content Area */}
       <main ref={mainContentRef} tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
-        {demo.active && currentScreen !== 'home' && (
-          <aside className="border-b border-[#D6C29E] bg-[#F3E9CF] px-4 py-3" aria-label="Demo scenario">
-            <div className="mx-auto flex max-w-6xl flex-col gap-1 text-sm text-[#4E432F] sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-              <p><strong className="text-[#2E5440]">Luna demo</strong> <span className="hidden sm:inline">—</span> Temporary demo — nothing is saved unless you choose to save it.</p>
-              <button type="button" onClick={demo.reset} className="brand-focus rounded text-xs font-semibold text-[var(--forest)] underline underline-offset-4">Reset demo</button>
-            </div>
-          </aside>
-        )}
         {currentScreen === 'home' && (
           <>
             <Hero onStart={handleStartAssessment} />
+            <AuthenticatedHome active={auth.loaded && auth.signedIn} onStart={handleStartAssessment} onContinue={(caseId) => void handleContinueSavedCase(caseId)} onViewAll={() => navigate('/my-pets')} />
             <ValueProposition />
             <section className="bg-[var(--cream)] py-16 sm:py-20"><div className="mx-auto grid max-w-[1380px] gap-10 px-5 sm:px-8 lg:grid-cols-[1.48fr_1fr] lg:items-start lg:gap-16 lg:px-12"><HowItWorks /><TrustDisclaimer /></div></section>
             <BrandMoment onStart={handleStartAssessment} />
@@ -471,13 +512,17 @@ export const HomePage: React.FC = () => {
           <HousingActionPlan
             backendCaseId={caseState.backendCaseId}
             petName={petName}
+            petType={petType}
             situation={housingSituation}
             timing={housingTiming}
             goal={housingGoal}
-            onTryPlan={handleTryPlan}
-            onBack={handleBackToHousingComplete}
+            onBack={selectedRootCause === 'housing' ? handleBackToHousingComplete : () => setCurrentScreen('domain-details')}
             onSavePlan={handleSavePlan}
             saveStatus={saveStatus}
+            authLoaded={auth.loaded}
+            signedIn={auth.signedIn}
+            primaryBarrier={selectedRootCause || 'housing'}
+            domainAnswers={domainAnswers}
             contributingBarriers={contributingBarriers}
             costConstraint={caseState.costConstraint}
           />
@@ -531,9 +576,20 @@ export const HomePage: React.FC = () => {
             concerns={behaviorConcerns}
             contributingBarriers={contributingBarriers}
             costConstraint={caseState.costConstraint}
-            onContinue={selectedRootCause === 'housing' ? handleContinueAfterBehavior : undefined}
-            onBack={handleBackToBehavior4}
+            onContinue={handleContinueAfterBehavior}
+            onBack={handleBackToBehavior1}
             onRestart={handleStartAnotherCase}
+          />
+        )}
+
+        {(currentScreen === 'domain-details' || currentScreen === 'general-plan') && selectedRootCause && selectedRootCause !== 'housing' && (
+          <DomainDetailsScreen
+            petName={petName}
+            primaryBarrier={selectedRootCause}
+            value={domainAnswers}
+            onChange={(value) => updateCase('domain', value)}
+            onContinue={handleContinueToHousingPlan}
+            onBack={selectedRootCause === 'behavior' ? handleBackToBehavior1 : handleBackToRootCause}
           />
         )}
 
@@ -583,7 +639,7 @@ export const HomePage: React.FC = () => {
       </main>
 
       {/* Minimal Footer */}
-      <Footer />
+      <Footer variant={currentScreen === 'home' ? 'marketing' : 'product'} />
     </div>
   );
 };

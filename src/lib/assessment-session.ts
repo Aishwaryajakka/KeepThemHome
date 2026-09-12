@@ -11,10 +11,11 @@ import type {
   OutcomeType,
   PetType,
   RootCauseType,
+  TriStateAnswer,
 } from '@/types/assessment';
 
 export const ASSESSMENT_SESSION_KEY = 'keep-them-home:active-case';
-export const ASSESSMENT_SESSION_VERSION = 2;
+export const ASSESSMENT_SESSION_VERSION = 3;
 
 export interface AssessmentCaseState {
   backendCaseId?: string;
@@ -36,6 +37,12 @@ export interface AssessmentCaseState {
     alreadyTried: BehaviorTried;
     helpBarrier: BehaviorBarrier;
   };
+  domain: {
+    primarySupportPossible: TriStateAnswer;
+    bridgeAvailable: TriStateAnswer;
+    alternativeAvailable: TriStateAnswer;
+    urgency: HousingTiming;
+  };
   outcome: OutcomeType;
   currentScreen: AssessmentScreen;
 }
@@ -49,6 +56,7 @@ export const initialAssessmentCase: AssessmentCaseState = {
   costConstraint: '',
   housing: { situation: '', urgency: '', goal: '' },
   behavior: { concern: '', concerns: [], seriousness: '', alreadyTried: '', helpBarrier: '' },
+  domain: { primarySupportPossible: '', bridgeAvailable: '', alternativeAvailable: '', urgency: '' },
   outcome: '',
   currentScreen: 'home',
 };
@@ -113,8 +121,9 @@ const allowed = {
     'home', 'pet-info', 'root-cause', 'housing-1', 'housing-2', 'housing-3',
     'housing-complete', 'housing-plan', 'outcome-checkin', 'outcome-keeping',
     'outcome-still-trying', 'outcome-rehoming', 'responsible-rehoming',
-    'behavior-1', 'behavior-2', 'behavior-3', 'behavior-4', 'behavior-complete',
+    'behavior-1', 'behavior-2', 'behavior-3', 'behavior-4', 'behavior-complete', 'general-plan', 'domain-details',
   ],
+  triState: ['', 'yes', 'no', 'unknown'],
 } as const;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -127,7 +136,7 @@ export const isAssessmentScreen = (value: unknown): value is AssessmentScreen =>
   includes(allowed.screen, value);
 
 export const isAssessmentCaseState = (value: unknown): value is AssessmentCaseState => {
-  if (!isRecord(value) || !isRecord(value.housing) || !isRecord(value.behavior)) return false;
+  if (!isRecord(value) || !isRecord(value.housing) || !isRecord(value.behavior) || !isRecord(value.domain)) return false;
 
   return (value.backendCaseId === undefined
       || (typeof value.backendCaseId === 'string'
@@ -158,6 +167,10 @@ export const isAssessmentCaseState = (value: unknown): value is AssessmentCaseSt
     && includes(allowed.behaviorSeriousness, value.behavior.seriousness)
     && includes(allowed.behaviorTried, value.behavior.alreadyTried)
     && includes(allowed.behaviorBarrier, value.behavior.helpBarrier)
+    && includes(allowed.triState, value.domain.primarySupportPossible)
+    && includes(allowed.triState, value.domain.bridgeAvailable)
+    && includes(allowed.triState, value.domain.alternativeAvailable)
+    && includes(allowed.housingUrgency, value.domain.urgency)
     && includes(allowed.outcome, value.outcome)
     && isAssessmentScreen(value.currentScreen);
 };
@@ -188,9 +201,11 @@ export const loadAssessmentCase = (): AssessmentCaseState => {
         selectedFactors,
         contributingBarriers: legacyContributing.filter((barrier) => barrier !== rootCause),
         behavior: { ...behavior, concern, concerns: concern ? [concern] : [] },
+        domain: initialAssessmentCase.domain,
       };
     }
-    if (stored.version !== ASSESSMENT_SESSION_VERSION && stored.version !== 1) candidate = undefined;
+    if (stored.version === 2 && isRecord(candidate)) candidate = { ...candidate, domain: initialAssessmentCase.domain };
+    if (stored.version !== ASSESSMENT_SESSION_VERSION && stored.version !== 2 && stored.version !== 1) candidate = undefined;
     if (!isAssessmentCaseState(candidate)) {
       sessionStorage.removeItem(ASSESSMENT_SESSION_KEY);
       return initialAssessmentCase;

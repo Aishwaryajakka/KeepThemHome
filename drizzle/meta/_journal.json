@@ -22,6 +22,13 @@
       "when": 1789066799572,
       "tag": "0002_chilly_eternity",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789189188632,
+      "tag": "0003_left_wendigo",
+      "breakpoints": true
     }
   ]
 }

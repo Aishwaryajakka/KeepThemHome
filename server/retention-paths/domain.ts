@@ -10,7 +10,15 @@ export type ConstraintKey =
   | 'temporaryCareAvailable'
   | 'underlyingIssueResolutionPossible'
   | 'petFriendlyHousingAvailable'
-  | 'moveRequirementsMet';
+  | 'moveRequirementsMet'
+  | 'primarySupportPossible'
+  | 'bridgeAvailable'
+  | 'alternativeAvailable'
+  | 'safetyManageable'
+  | 'costReductionPossible'
+  | 'careAccessPossible'
+  | 'careSupportAvailable'
+  | 'householdAdaptationPossible';
 
 export interface NormalizedHousingCase {
   primaryBarrier: string | null;
@@ -19,7 +27,7 @@ export interface NormalizedHousingCase {
   urgency: string | null;
   goal: string | null;
   costConstraint: string | null;
-  constraints: Record<ConstraintKey, RequirementState>;
+  constraints: Partial<Record<ConstraintKey, RequirementState>>;
 }
 
 export interface PathRequirement {
@@ -40,6 +48,7 @@ export interface RetentionStep {
 
 export interface RetentionPathDefinition {
   key: string;
+  domain?: string;
   title: string;
   objective: string;
   disruption: number;

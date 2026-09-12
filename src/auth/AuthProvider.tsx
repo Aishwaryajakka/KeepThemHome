@@ -1,6 +1,7 @@
 import { ClerkProvider, useAuth, useClerk } from '@clerk/react';
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { configureAuthTokenProvider } from '@/lib/case-api';
+import { clearClientSessionState } from '@/lib/client-session';
 
 interface AppAuth {
   configured: boolean;
@@ -19,6 +20,7 @@ const ClerkAuthBridge = ({ children }: { children: ReactNode }) => {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const clerk = useClerk();
   const [tokenProviderReady, setTokenProviderReady] = useState(false);
+  const wasSignedIn = useRef(false);
   useEffect(() => {
     configureAuthTokenProvider(() => getToken());
     setTokenProviderReady(true);
@@ -27,13 +29,25 @@ const ClerkAuthBridge = ({ children }: { children: ReactNode }) => {
       configureAuthTokenProvider(undefined);
     };
   }, [getToken]);
+  useEffect(() => {
+    if (isLoaded && wasSignedIn.current && !isSignedIn) {
+      clearClientSessionState();
+      window.location.replace('/');
+    }
+    if (isLoaded) wasSignedIn.current = Boolean(isSignedIn);
+  }, [isLoaded, isSignedIn]);
+  const signOut = async () => {
+    await clerk.signOut();
+    clearClientSessionState();
+    window.location.replace('/');
+  };
   return (
     <AuthContext.Provider value={{
       configured: true,
       loaded: isLoaded && tokenProviderReady,
       signedIn: Boolean(isSignedIn),
       openSignIn: () => clerk.openSignIn(),
-      signOut: () => clerk.signOut(),
+      signOut,
     }}>
       {children}
     </AuthContext.Provider>

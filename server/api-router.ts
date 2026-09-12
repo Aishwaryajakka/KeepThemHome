@@ -14,6 +14,9 @@ import evidenceHandler from './api-handlers/cases/[id]/paths/[pathKey]/evidence'
 import intakeHandler from './api-handlers/intake/extract';
 import resourcesHandler from './api-handlers/resources';
 import evidencePreviewHandler from './api-handlers/evidence/preview';
+import actionsHandler from './api-handlers/cases/[id]/actions';
+import actionHandler from './api-handlers/cases/[id]/actions/[actionId]';
+import actionOutcomeHandler from './api-handlers/cases/[id]/actions/[actionId]/outcome';
 
 export type ApiHandler = (request: VercelRequest, response: VercelResponse) => unknown;
 
@@ -33,6 +36,9 @@ export interface ApiHandlers {
   intake: ApiHandler;
   resources: ApiHandler;
   evidencePreview: ApiHandler;
+  actions: ApiHandler;
+  action: ApiHandler;
+  actionOutcome: ApiHandler;
 }
 
 const defaultHandlers: ApiHandlers = {
@@ -51,6 +57,9 @@ const defaultHandlers: ApiHandlers = {
   intake: intakeHandler,
   resources: resourcesHandler,
   evidencePreview: evidencePreviewHandler,
+  actions: actionsHandler,
+  action: actionHandler,
+  actionOutcome: actionOutcomeHandler,
 };
 
 const routePath = (request: VercelRequest) => {
@@ -104,6 +113,13 @@ export const createApiRouter = (handlers: ApiHandlers = defaultHandlers) => asyn
     withParams(request, { id: decodeURIComponent(match[1]), pathKey: decodeURIComponent(match[2]) });
     return handlers[match[3] as 'unlock' | 'evidence'](request, response);
   }
+
+  match = /^cases\/([^/]+)\/actions$/.exec(path);
+  if (match) { withParams(request, { id: decodeURIComponent(match[1]) }); return handlers.actions(request, response); }
+  match = /^cases\/([^/]+)\/actions\/([^/]+)$/.exec(path);
+  if (match) { withParams(request, { id: decodeURIComponent(match[1]), actionId: decodeURIComponent(match[2]) }); return handlers.action(request, response); }
+  match = /^cases\/([^/]+)\/actions\/([^/]+)\/outcome$/.exec(path);
+  if (match) { withParams(request, { id: decodeURIComponent(match[1]), actionId: decodeURIComponent(match[2]) }); return handlers.actionOutcome(request, response); }
 
   return response.status(404).json({ error: 'API route not found' });
 };
