@@ -8,15 +8,19 @@ import { factorLabel } from '@/lib/presentation';
 interface AuthenticatedHomeProps {
   active: boolean;
   onStart: () => void;
-  onContinue: (caseId: string) => void;
+  onContinue: (petId: string, caseId: string) => void;
   onViewAll: () => void;
 }
 
-export default function AuthenticatedHome({ active, onStart, onContinue, onViewAll }: AuthenticatedHomeProps) {
+export default function AuthenticatedHome({ active, onStart, onContinue: continueWithPet, onViewAll }: AuthenticatedHomeProps) {
   const [cases, setCases] = useState<SavedCaseSummary[]>([]);
   const [paths, setPaths] = useState<Record<string, RetentionPathResult | undefined>>({});
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const [refreshKey, setRefreshKey] = useState(0);
+  const onContinue = (caseId: string) => {
+    const item = cases.find(({ case: caseRecord }) => caseRecord.id === caseId);
+    if (item) continueWithPet(item.pet.id, caseId);
+  };
 
   useEffect(() => {
     const refresh = () => setRefreshKey((value) => value + 1);

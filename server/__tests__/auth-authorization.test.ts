@@ -81,10 +81,18 @@ describe('authenticated application boundary', () => {
   });
 
   it('uses privacy-preserving 404 for another user pet and scopes updates', async () => {
-    const services = { getOwnedPet: vi.fn(async () => undefined), updateOwnedPet: vi.fn() };
+    const services = { getOwnedPet: vi.fn(async () => undefined), updateOwnedPet: vi.fn(), deleteOwnedPet: vi.fn() };
     const { response } = responseDouble();
     await createPetHandler(vi.fn(async () => userA as never), services as never)(request('GET', undefined, petId), response);
     expect(services.getOwnedPet).toHaveBeenCalledWith(userA.id, petId);
+    expect(response.status).toHaveBeenCalledWith(404);
+  });
+
+  it('deletes only an owned pet and reports a foreign pet as not found', async () => {
+    const services = { getOwnedPet: vi.fn(), updateOwnedPet: vi.fn(), deleteOwnedPet: vi.fn(async () => undefined) };
+    const { response } = responseDouble();
+    await createPetHandler(vi.fn(async () => userA as never), services as never)(request('DELETE', undefined, petId), response);
+    expect(services.deleteOwnedPet).toHaveBeenCalledWith(userA.id, petId);
     expect(response.status).toHaveBeenCalledWith(404);
   });
 

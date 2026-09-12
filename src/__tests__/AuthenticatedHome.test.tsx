@@ -35,7 +35,7 @@ describe('authenticated home', () => {
     expect(await screen.findByRole('heading', { name: 'Luna' })).toBeInTheDocument();
     expect(screen.getByText('Conditional')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Continue Luna’s plan' }));
-    expect(onContinue).toHaveBeenCalledWith('case-1');
+    expect(onContinue).toHaveBeenCalledWith('pet-1', 'case-1');
   });
 
   it('shows a keeping outcome as history rather than urgent work', async () => {

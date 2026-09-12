@@ -9,6 +9,7 @@ const signedInAuth = () => ({ configured: true, loaded: true, signedIn: true, se
 let authState = signedInAuth();
 
 vi.mock('@/components/Header', () => ({ default: () => <header>Keep Them Home</header> }));
+vi.mock('@/components/AppHeader', () => ({ default: () => <header>Keep Them Home app</header> }));
 vi.mock('@/components/Footer', () => ({ default: () => <footer>People and pets belong together.</footer> }));
 vi.mock('@/auth/AuthProvider', () => ({
   useAppAuth: () => authState,
@@ -32,6 +33,7 @@ describe('My Pets continuation dashboard', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     authState = signedInAuth();
+    vi.spyOn(caseApi, 'listPets').mockResolvedValue([savedLuna.pet] as never);
   });
 
   it('distinguishes signed-out and request-error states', async () => {
@@ -64,6 +66,7 @@ describe('My Pets continuation dashboard', () => {
   });
 
   it('shows the warm empty state', async () => {
+    vi.spyOn(caseApi, 'listPets').mockResolvedValue([]);
     vi.spyOn(caseApi, 'listCases').mockResolvedValue([]);
     renderPage();
     expect(await screen.findByRole('heading', { name: 'You haven’t started a case yet.' })).toBeInTheDocument();
@@ -72,16 +75,63 @@ describe('My Pets continuation dashboard', () => {
   });
 
   it('refetches saved plans when a successful save invalidates My Pets', async () => {
+    const listPets = vi.spyOn(caseApi, 'listPets').mockResolvedValue([]);
     const listCases = vi.spyOn(caseApi, 'listCases').mockResolvedValue([]);
     renderPage();
     expect(await screen.findByRole('heading', { name: 'You haven’t started a case yet.' })).toBeInTheDocument();
 
     listCases.mockResolvedValue([savedLuna] as never);
+    listPets.mockResolvedValue([savedLuna.pet] as never);
     vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('Path unavailable'));
     window.dispatchEvent(new Event(SAVED_PLANS_CHANGED_EVENT));
 
     expect(await screen.findByRole('heading', { name: 'Luna' })).toBeInTheDocument();
     expect(listCases).toHaveBeenCalledTimes(2);
+    expect(listPets).toHaveBeenCalledTimes(2);
+  });
+
+  it('treats a pets request failure as an error instead of an empty account', async () => {
+    vi.spyOn(caseApi, 'listPets').mockRejectedValue(new Error('Method not allowed'));
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([]);
+    renderPage();
+    expect(await screen.findByRole('alert')).toHaveTextContent('We couldn’t load your pets right now.');
+  });
+
+  it('creates a pet through the authenticated API and refreshes server data', async () => {
+    const user = userEvent.setup();
+    const listPets = vi.spyOn(caseApi, 'listPets').mockResolvedValue([]);
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([]);
+    const createPet = vi.spyOn(caseApi, 'createPet').mockResolvedValue({ ...savedLuna.pet, id: 'pet-milo', name: 'Milo' } as never);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Add Pet' }));
+    await user.type(screen.getByRole('textbox', { name: 'Pet name' }), 'Milo');
+    await user.click(screen.getByRole('button', { name: 'Save Pet' }));
+    expect(createPet).toHaveBeenCalledWith({ name: 'Milo', type: 'dog' });
+    expect(listPets).toHaveBeenCalledTimes(2);
+  });
+
+  it('starts a case for an existing pet without creating a duplicate pet', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(caseApi, 'listPets').mockResolvedValue([savedLuna.pet] as never);
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([]);
+    const createCase = vi.spyOn(caseApi, 'createCase').mockResolvedValue(savedLuna.case as never);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Start a case' }));
+    expect(createCase).toHaveBeenCalledWith({ petId: 'pet-1', primaryBarrier: null, urgency: null, goal: null, currentStatus: 'ACTIVE' });
+    expect(screen.getByRole('status', { name: 'Current location' })).toHaveTextContent(`/pets/pet-1/cases/${savedLuna.case.id}`);
+  });
+
+  it('confirms before deleting a pet and refetches server state after success', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([savedLuna] as never);
+    vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('not needed'));
+    const deletePet = vi.spyOn(caseApi, 'deletePet').mockResolvedValue({ deleted: true, petId: 'pet-1' });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Edit Pet' }));
+    await user.click(screen.getByRole('button', { name: 'Delete Luna' }));
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining("delete Luna's saved cases and progress"));
+    expect(deletePet).toHaveBeenCalledWith('pet-1');
   });
 
   it('shows a saved pet with its trusted current path and blockers', async () => {

@@ -1,5 +1,5 @@
 import { and, asc, eq } from 'drizzle-orm';
-import { getDatabase } from '../db.js';
+import { getDatabase, getTransactionalDatabase } from '../db.js';
 import { pets } from '../db/schema.js';
 import type { CreatePetInput, UpdatePetInput } from '../validation/pet.js';
 
@@ -21,3 +21,10 @@ export const updateOwnedPet = async (userId: string, petId: string, input: Updat
     .where(and(eq(pets.id, petId), eq(pets.userId, userId))).returning();
   return updated;
 };
+
+export const deleteOwnedPet = async (userId: string, petId: string) => getTransactionalDatabase().transaction(async (tx) => {
+  const [owned] = await tx.select().from(pets).where(and(eq(pets.id, petId), eq(pets.userId, userId))).limit(1);
+  if (!owned) return undefined;
+  const [deleted] = await tx.delete(pets).where(and(eq(pets.id, petId), eq(pets.userId, userId))).returning();
+  return deleted;
+});

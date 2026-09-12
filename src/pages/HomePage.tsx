@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import Header from '@/components/Header';
+import AppHeader from '@/components/AppHeader';
 import Hero from '@/components/Hero';
 import HowItWorks from '@/components/HowItWorks';
 import TrustDisclaimer from '@/components/TrustDisclaimer';
@@ -136,12 +137,6 @@ export const HomePage: React.FC = () => {
   }, [auth.loaded, auth.serverReady, location.search, routeCaseId, routePetId]);
 
   useEffect(() => {
-    if (location.pathname === '/' && currentScreen === 'home' && auth.loaded && auth.signedIn && !demo.active) {
-      navigate('/dashboard', { replace: true });
-    }
-  }, [auth.loaded, auth.signedIn, currentScreen, demo.active, location.pathname, navigate]);
-
-  useEffect(() => {
     if (demo.active) {
       demoWasActive.current = true;
       dispatch({ type: 'reset' });
@@ -250,7 +245,7 @@ export const HomePage: React.FC = () => {
     dispatch({ type: 'reset' });
     setSaveRequested(false);
     setSaveStatus('idle');
-    if (auth.signedIn) navigate('/dashboard', { replace: true });
+    navigate('/', { replace: true });
   };
 
   const handleContinueSavedCase = async (caseId: string) => {
@@ -440,7 +435,7 @@ export const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col bg-[#FAF7F2] text-[#2D2D2D] selection:bg-[#E3C9B2]/60 selection:text-[#2E5440]">
       {/* Header */}
-      <Header
+      {currentScreen === 'home' ? <Header
         variant={currentScreen === 'home' ? 'marketing' : 'product'}
             onCtaClick={handleExit}
         onStart={currentScreen === 'home' ? handleStartAssessment : undefined}
@@ -449,7 +444,7 @@ export const HomePage: React.FC = () => {
         factors={selectedFactors}
         urgency={housingTiming}
         saved={saveStatus === 'saved'}
-      />
+      /> : auth.signedIn ? <AppHeader /> : <Header variant="product" onCtaClick={handleExit} petName={petName} petType={petType} factors={selectedFactors} urgency={housingTiming} saved={saveStatus === 'saved'} />}
 
       {/* Main Content Area */}
       <main ref={mainContentRef} tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">
@@ -458,7 +453,7 @@ export const HomePage: React.FC = () => {
         {restoreStatus === 'idle' && currentScreen === 'home' && (
           <>
             <Hero onStart={handleStartAssessment} />
-            <AuthenticatedHome active={auth.loaded && auth.signedIn} onStart={handleStartAssessment} onContinue={(caseId) => void handleContinueSavedCase(caseId)} onViewAll={() => navigate('/dashboard')} />
+            <AuthenticatedHome active={auth.loaded && auth.signedIn} onStart={handleStartAssessment} onContinue={(_petId, caseId) => void handleContinueSavedCase(caseId)} onViewAll={() => navigate('/my-pets')} />
             <ValueProposition />
             <section className="bg-[var(--cream)] py-16 sm:py-20"><div className="mx-auto grid max-w-[1380px] gap-10 px-5 sm:px-8 lg:grid-cols-[1.48fr_1fr] lg:items-start lg:gap-16 lg:px-12"><HowItWorks /><TrustDisclaimer /></div></section>
             <BrandMoment onStart={handleStartAssessment} />

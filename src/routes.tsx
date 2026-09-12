@@ -2,6 +2,7 @@ import HomePage from './pages/HomePage';
 import { lazy, Suspense, type ReactNode } from 'react';
 
 const MyPetsPage = lazy(() => import('./pages/MyPetsPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 
 export interface RouteConfig {
   name: string;
@@ -19,7 +20,7 @@ export const routes: RouteConfig[] = [
     element: <HomePage />,
     public: true,
   },
-  { name: 'Dashboard', path: '/dashboard', element: <Suspense fallback={<div className="min-h-screen bg-[var(--cream)] p-8" role="status" aria-label="Loading dashboard" />}><MyPetsPage /></Suspense> },
+  { name: 'Dashboard', path: '/dashboard', element: <Suspense fallback={<div className="min-h-screen bg-[var(--cream)] p-8" role="status" aria-label="Loading dashboard" />}><DashboardPage /></Suspense> },
   { name: 'My Pets', path: '/my-pets', element: <Suspense fallback={<div className="min-h-screen bg-[var(--cream)] p-8" role="status" aria-label="Loading pets" />}><MyPetsPage /></Suspense> },
   { name: 'Case workspace', path: '/pets/:petId/cases/:caseId', element: <HomePage /> },
 ];

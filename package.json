@@ -13,6 +13,7 @@
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx server/seeds/resources.ts",
     "db:seed:demo": "tsx server/seeds/demo.ts",
+    "seed:demo": "tsx server/seeds/demo-user.ts",
     "db:verify": "tsx server/scripts/verify-live.ts",
     "db:verify:production": "tsx server/scripts/verify-production.ts"
   },

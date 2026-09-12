@@ -272,6 +272,11 @@ export const caseApi = {
 
   listPets: async () => (await requestJson<{ pets: PetResponse[] }>('/api/pets')).pets,
 
+  updatePet: async (id: string, input: { name?: string; type?: ApiPetType }) =>
+    (await requestJson<{ pet: PetResponse }>(`/api/pets/${id}`, { method: 'PATCH', body: JSON.stringify(input) })).pet,
+
+  deletePet: async (id: string) => requestJson<{ deleted: true; petId: string }>(`/api/pets/${id}`, { method: 'DELETE' }),
+
   listCases: async () => (await requestJson<{ cases: SavedCaseSummary[] }>('/api/cases')).cases,
 
   createCase: async (input: CreateCaseInput) =>
