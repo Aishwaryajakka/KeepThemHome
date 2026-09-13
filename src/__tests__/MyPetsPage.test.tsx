@@ -134,6 +134,71 @@ describe('My Pets continuation dashboard', () => {
     expect(deletePet).toHaveBeenCalledWith('pet-1');
   });
 
+  it('cancels pet deletion without calling the API', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([savedLuna] as never);
+    vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('not needed'));
+    const deletePet = vi.spyOn(caseApi, 'deletePet');
+    renderPage();
+    await user.click(await screen.findByText('Delete Pet'));
+    await user.click(screen.getByRole('button', { name: 'Delete Luna' }));
+    expect(deletePet).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Luna' })).toBeInTheDocument();
+  });
+
+  it('keeps a pet visible when pet deletion fails', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([savedLuna] as never);
+    vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('not needed'));
+    vi.spyOn(caseApi, 'deletePet').mockRejectedValue(new Error('delete failed'));
+    renderPage();
+    await user.click(await screen.findByText('Delete Pet'));
+    await user.click(screen.getByRole('button', { name: 'Delete Luna' }));
+    expect(await screen.findByRole('heading', { name: 'Luna' })).toBeInTheDocument();
+  });
+
+  it('deletes a case only after confirmation and keeps the pet', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const listCases = vi.spyOn(caseApi, 'listCases').mockResolvedValueOnce([savedLuna] as never).mockResolvedValue([]);
+    vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('not needed'));
+    const deleteCase = vi.spyOn(caseApi, 'deleteCase').mockResolvedValue({ deleted: true, caseId: savedLuna.case.id });
+    renderPage();
+    await user.click(await screen.findByText('Delete Case'));
+    await user.click(screen.getByRole('button', { name: 'Delete Luna’s case' }));
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Luna will remain in My Pets'));
+    expect(deleteCase).toHaveBeenCalledWith(savedLuna.case.id);
+    expect(await screen.findByText('No active case yet.')).toBeInTheDocument();
+    expect(listCases).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps a case visible when its deletion fails', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([savedLuna] as never);
+    vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('not needed'));
+    vi.spyOn(caseApi, 'deleteCase').mockRejectedValue(new Error('delete failed'));
+    renderPage();
+    await user.click(await screen.findByText('Delete Case'));
+    await user.click(screen.getByRole('button', { name: 'Delete Luna’s case' }));
+    expect(await screen.findByRole('heading', { name: 'Luna' })).toBeInTheDocument();
+  });
+
+  it('cancels case deletion without calling the API', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    vi.spyOn(caseApi, 'listCases').mockResolvedValue([savedLuna] as never);
+    vi.spyOn(caseApi, 'getRetentionPaths').mockRejectedValue(new Error('not needed'));
+    const deleteCase = vi.spyOn(caseApi, 'deleteCase');
+    renderPage();
+    await user.click(await screen.findByText('Delete Case'));
+    await user.click(screen.getByRole('button', { name: 'Delete Luna’s case' }));
+    expect(deleteCase).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Luna' })).toBeInTheDocument();
+  });
+
   it('shows a saved pet with its trusted current path and blockers', async () => {
     vi.spyOn(caseApi, 'listCases').mockResolvedValue([savedLuna] as never);
     vi.spyOn(caseApi, 'getRetentionPaths').mockResolvedValue({

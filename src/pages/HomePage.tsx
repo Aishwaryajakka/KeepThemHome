@@ -267,11 +267,14 @@ export const HomePage: React.FC = () => {
 
   const handleIntakeConfirm = (result: IntakeResult, confirmedGoal?: HousingGoal) => {
     const merged = mergeIntakeResult(caseState, result);
-    const nextState = confirmedGoal ? {
-      ...merged,
-      housing: { ...merged.housing, goal: confirmedGoal },
-      currentScreen: merged.rootCause === 'housing' ? 'housing-complete' as const : merged.currentScreen,
-    } : merged;
+    const withGoal = confirmedGoal ? { ...merged, housing: { ...merged.housing, goal: confirmedGoal } } : merged;
+    const nextState = {
+      ...withGoal,
+      currentScreen: withGoal.rootCause === 'housing' && withGoal.housing.situation && withGoal.housing.urgency
+        ? 'housing-complete' as const
+        : withGoal.currentScreen,
+    };
+    console.info(`[options] handler_invoked=true validation=valid target_screen=${nextState.currentScreen}`);
     window.history.pushState({ [HISTORY_STATE_KEY]: nextState.currentScreen }, '', window.location.href);
     dispatch({ type: 'update', patch: nextState });
   };
@@ -448,7 +451,7 @@ export const HomePage: React.FC = () => {
         factors={selectedFactors}
         urgency={housingTiming}
         saved={saveStatus === 'saved'}
-      /> : auth.signedIn ? <AppHeader /> : <Header variant="product" onCtaClick={handleExit} petName={petName} petType={petType} factors={selectedFactors} urgency={housingTiming} saved={saveStatus === 'saved'} />}
+      /> : auth.signedIn ? <AppHeader onHome={handleExit} /> : <Header variant="product" onCtaClick={handleExit} petName={petName} petType={petType} factors={selectedFactors} urgency={housingTiming} saved={saveStatus === 'saved'} />}
 
       {/* Main Content Area */}
       <main ref={mainContentRef} tabIndex={-1} className="flex-1 flex flex-col focus:outline-none">

@@ -292,6 +292,8 @@ export const caseApi = {
       method: 'PATCH', body: JSON.stringify(input),
     })).case,
 
+  deleteCase: async (id: string) => requestJson<{ deleted: true; caseId: string }>(`/api/cases/${id}`, { method: 'DELETE' }),
+
   recordFactors: async (id: string, factors: FactorInput[]) =>
     requestJson(`/api/cases/${id}/factors`, {
       method: 'POST', body: JSON.stringify({ factors }),

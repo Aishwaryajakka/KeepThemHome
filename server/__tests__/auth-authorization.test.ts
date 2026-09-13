@@ -133,6 +133,22 @@ describe('authenticated application boundary', () => {
     expect(services.getCaseFactors).not.toHaveBeenCalled();
   });
 
+  it('deletes only an owned case', async () => {
+    const services = { getOwnedCase: vi.fn(async () => ({ id: caseId } as never)), getOwnedPet: vi.fn(), getCaseFactors: vi.fn(), getOutcomes: vi.fn(), updateOwnedCase: vi.fn(), deleteOwnedCase: vi.fn(async () => ({ id: caseId } as never)) };
+    const { response, json } = responseDouble();
+    await createCaseHandler(vi.fn(async () => userA as never), services as never)(request('DELETE'), response);
+    expect(services.deleteOwnedCase).toHaveBeenCalledWith(userA.id, caseId);
+    expect(json).toHaveBeenCalledWith({ deleted: true, caseId });
+  });
+
+  it('does not delete another user’s case', async () => {
+    const services = { getOwnedCase: vi.fn(async () => undefined), getOwnedPet: vi.fn(), getCaseFactors: vi.fn(), getOutcomes: vi.fn(), updateOwnedCase: vi.fn(), deleteOwnedCase: vi.fn() };
+    const { response } = responseDouble();
+    await createCaseHandler(vi.fn(async () => userA as never), services as never)(request('DELETE'), response);
+    expect(response.status).toHaveBeenCalledWith(404);
+    expect(services.deleteOwnedCase).not.toHaveBeenCalled();
+  });
+
   it('prevents ownership columns from being patched', async () => {
     const services = { getOwnedCase: vi.fn(async () => ({ id: caseId } as never)), getOwnedPet: vi.fn(), getCaseFactors: vi.fn(), getOutcomes: vi.fn(), updateOwnedCase: vi.fn() };
     const { response } = responseDouble();

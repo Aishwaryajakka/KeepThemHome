@@ -23,6 +23,8 @@ describe('core intake interactions', () => {
     expect(story).toHaveValue('Luna needs help Now');
     await user.click(screen.getByRole('button', { name: 'See what we understood' }));
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({ text: 'Luna needs help Now' });
+    expect(await screen.findByText('We still need to understand the main issue before comparing options. Answer step by step to continue.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'See my options' })).toBeDisabled();
   });
 
   it('activates a choice from its text, card whitespace, and keyboard', async () => {
@@ -55,6 +57,9 @@ describe('core intake interactions', () => {
     await user.type(screen.getByRole('textbox', { name: 'Tell us what’s happening' }), 'Luna needs help.');
     await user.click(screen.getByRole('button', { name: 'See what we understood' }));
     expect(await screen.findByText('We couldn’t fully interpret that. You can answer a few questions instead.')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Tell us what’s happening' })).toHaveValue('Luna needs help.');
+    await user.click(screen.getByRole('button', { name: 'Answer step by step' }));
+    expect(screen.getByLabelText(/Pet name/)).toBeEnabled();
     expect(screen.queryByRole('heading', { name: 'Here’s what we understood.' })).not.toBeInTheDocument();
   });
 });

@@ -119,6 +119,19 @@ export default function MyPetsPage() {
     } catch { setPetMutationStatus('error'); }
   };
 
+  const deleteCase = async (item: SavedCaseSummary) => {
+    if (petMutationStatus === 'saving') return;
+    if (!window.confirm(`Delete ${item.pet.name}’s case?\n\nThis will delete this case’s factors, actions, outcomes, progress, and history. ${item.pet.name} will remain in My Pets.`)) return;
+    setPetMutationStatus('saving');
+    try {
+      await caseApi.deleteCase(item.case.id);
+      setSavedCases((items) => items.filter(({ case: caseRecord }) => caseRecord.id !== item.case.id));
+      setPetMutationStatus('idle');
+      window.dispatchEvent(new Event(SAVED_PLANS_CHANGED_EVENT));
+      setRetryKey((value) => value + 1);
+    } catch { setPetMutationStatus('error'); }
+  };
+
   return <div className="flex min-h-screen flex-col bg-[#FAF7F2]"><AppHeader /><main className="mx-auto w-full max-w-7xl flex-1 px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
     <div className="max-w-2xl"><p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#2E5440]/65">Your pets</p><h1 className="mt-2 font-serif text-4xl text-[#2E5440] sm:text-5xl">My Pets</h1><p className="mt-3 text-lg text-[#2D2D2D]/70">Manage your pets and continue their active cases.</p></div>
     {auth.status === 'SIGNED_OUT' && <section className="mx-auto mt-10 max-w-3xl rounded-3xl border border-[#A7B89F]/30 bg-white/70 px-6 py-16 text-center shadow-[0_18px_55px_rgba(46,84,64,0.05)] sm:px-12"><span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--warm-sand)]/35 text-[var(--forest)]"><PawPrint className="h-7 w-7" aria-hidden="true" /></span><h2 className="mt-6 font-serif text-3xl text-[#2E5440] sm:text-4xl">Sign in to see your pets.</h2><p className="mt-3 text-[#2D2D2D]/70">Your pets, cases, and actions are securely connected to your account.</p><div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">{auth.configured && <Button onClick={auth.openSignIn} className="bg-[#2E5440] text-[#FAF7F2]">Sign in</Button>}<Button variant="outline" onClick={() => navigate('/')} className="border-[var(--forest)] text-[var(--forest)]">Find options for my pet</Button></div></section>}
@@ -150,5 +163,6 @@ export default function MyPetsPage() {
       <div className="md:col-span-2"><Button variant="outline" className="border-[#2E5440] text-[#2E5440]" onClick={() => navigate('/')}>Find options for another pet</Button></div>
     </div>}
     {auth.signedIn && status === 'ready' && pets.length > 0 && <details className="mt-8 rounded-2xl border border-[var(--border-warm)] bg-white/60 p-4"><summary className="brand-focus cursor-pointer rounded text-sm font-semibold text-[var(--text-muted)]">Delete Pet</summary><p className="mt-3 text-sm text-[var(--text-muted)]">Choose a pet to remove. You’ll be asked to confirm before anything is deleted.</p><div className="mt-3 flex flex-wrap gap-2">{pets.map((pet) => <Button key={pet.id} type="button" variant="outline" disabled={petMutationStatus === 'saving'} onClick={() => void deletePet(pet.id)} className="border-red-300 text-red-800 hover:bg-red-50">Delete {pet.name}</Button>)}</div></details>}
+    {auth.signedIn && status === 'ready' && savedCases.length > 0 && <details className="mt-4 rounded-2xl border border-[var(--border-warm)] bg-white/60 p-4"><summary className="brand-focus cursor-pointer rounded text-sm font-semibold text-[var(--text-muted)]">Delete Case</summary><p className="mt-3 text-sm text-[var(--text-muted)]">Deleting a case removes its progress and history. The pet remains in My Pets.</p><div className="mt-3 flex flex-wrap gap-2">{savedCases.map((item) => <Button key={item.case.id} type="button" variant="outline" disabled={petMutationStatus === 'saving'} onClick={() => void deleteCase(item)} className="border-red-300 text-red-800 hover:bg-red-50">Delete {item.pet.name}’s case</Button>)}</div></details>}
   </main><Footer variant="product" /></div>;
 }

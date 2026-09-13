@@ -52,6 +52,12 @@ export const updateOwnedCase = async (userId: string, id: string, input: UpdateC
   return updated;
 };
 
+export const deleteOwnedCase = async (userId: string, id: string) => {
+  const [deleted] = await getDatabase().delete(cases)
+    .where(and(eq(cases.id, id), eq(cases.userId, userId))).returning();
+  return deleted;
+};
+
 export const getCase = async (id: string) => {
   const [record] = await getDatabase().select().from(cases).where(eq(cases.id, id)).limit(1);
   return record;

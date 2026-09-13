@@ -78,6 +78,14 @@ beforeEach(() => {
 });
 
 describe('Keep Them Home demo flows', () => {
+  it('returns home from an assessment through the full logo hit area without signing out', async () => {
+    const user = await startAssessment();
+    expect(screen.getByRole('heading', { name: 'Tell us what’s happening.' })).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Keep Them Home Homepage' }));
+    expect(await screen.findByRole('heading', { name: 'Before you give them up, let’s see what’s possible.' })).toBeInTheDocument();
+    expect(authState.signOut).not.toHaveBeenCalled();
+  });
+
   it('shows Saved only after the atomic server save succeeds', async () => {
     authState = { ...authState, signedIn: true, serverReady: true, status: 'SIGNED_IN_READY' };
     let resolveSave: ((value: never) => void) | undefined;
@@ -165,7 +173,7 @@ describe('Keep Them Home demo flows', () => {
     await user.click(screen.getByRole('button', { name: 'See what we understood' }));
     expect(await screen.findByRole('heading', { name: 'Here’s what we understood.' })).toBeInTheDocument();
     expect(screen.getAllByText('From your story')).toHaveLength(4);
-    expect(screen.getByText('We still need to know')).toBeInTheDocument();
+    expect(screen.getByText('Optional — you can compare options without deciding this yet.')).toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: 'I need to stay in my current home' }));
     await user.click(screen.getByRole('button', { name: 'See my options' }));
     expect(await screen.findByRole('heading', { name: 'We have enough to evaluate Luna’s options.' })).toBeInTheDocument();
@@ -206,9 +214,7 @@ describe('Keep Them Home demo flows', () => {
     expect(screen.getByText('Urgent — about 7 days')).toBeInTheDocument();
     expect(screen.getAllByText('From your story')).toHaveLength(4);
     expect(screen.getByRole('radio', { name: 'I need to stay in my current home' })).not.toBeChecked();
-    expect(screen.getByRole('button', { name: 'See my options' })).toBeDisabled();
-    await user.click(screen.getByRole('radio', { name: 'I need to stay in my current home' }));
-    expect(screen.getByText('Confirmed by you')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'See my options' })).toBeEnabled();
     await user.click(screen.getByRole('button', { name: 'See my options' }));
     expect(await screen.findByRole('heading', { name: 'We have enough to evaluate Luna’s options.' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Open decision workspace' }));
@@ -217,8 +223,37 @@ describe('Keep Them Home demo flows', () => {
       const stored = JSON.parse(sessionStorage.getItem(ASSESSMENT_SESSION_KEY) ?? '{}');
       expect(stored.caseState?.selectedFactors).toEqual(['housing', 'behavior', 'cost']);
       expect(stored.caseState?.behavior.concerns).toEqual(['Barking or excessive noise']);
-      expect(stored.caseState?.housing.goal).toBe('Stay where I am');
+      expect(stored.caseState?.housing.goal).toBe('');
     });
+  });
+
+  it('collects a missing pet name before advancing an extracted biting concern', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      extraction: {
+        petName: null, petType: 'dog', primaryBarrier: 'behavior', contributingBarriers: [],
+        housingSituation: null, behaviorConcern: 'Growling, biting, or aggression',
+        behaviorSeriousness: null, behaviorAlreadyTried: null, behaviorHelpBarrier: null,
+        costConstraint: null, urgency: null, goal: null,
+      },
+      followUps: [
+        { field: 'pet', screen: 'pet-info', question: 'Who are we helping?' },
+        { field: 'behaviorSeriousness', screen: 'behavior-2', question: 'How serious is it?' },
+      ],
+    }), { status: 200 })));
+    const info = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    const user = await startAssessment();
+    await user.type(screen.getByRole('textbox', { name: 'Tell us what’s happening' }), 'My dog it biting other dogs when the dog gets too close');
+    await user.click(screen.getByRole('button', { name: 'See what we understood' }));
+
+    expect(await screen.findByText('Behavior pressure')).toBeInTheDocument();
+    expect(screen.getByText('Growling, biting, or aggression')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'See my options' })).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent('Tell us who we’re helping');
+
+    await user.type(screen.getByRole('textbox', { name: 'What is your pet’s name?' }), 'Buddy');
+    await user.click(screen.getByRole('button', { name: 'See my options' }));
+    expect(await screen.findByRole('heading', { name: 'How serious does the situation feel?' })).toBeInTheDocument();
+    expect(info).toHaveBeenCalledWith('[options] handler_invoked=true validation=valid target_screen=behavior-2');
   });
 
   it('completes the Luna Housing, Behavior, and Money multi-factor review', async () => {

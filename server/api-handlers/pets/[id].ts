@@ -19,6 +19,7 @@ export const createPetHandler = (resolveUser: AppUserResolver = resolveAppUser, 
     }
     if (request.method === 'DELETE') {
       const pet = await services.deleteOwnedPet(user.id, parsedId.data);
+      console.info(`[pet-delete] success=${Boolean(pet)}`);
       return pet ? response.status(200).json({ deleted: true, petId: pet.id }) : response.status(404).json({ error: 'Pet not found' });
     }
     const parsed = parseBody(request, updatePetSchema);

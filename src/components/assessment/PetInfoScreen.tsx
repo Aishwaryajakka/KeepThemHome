@@ -74,7 +74,9 @@ export const PetInfoScreen: React.FC<PetInfoScreenProps> = ({
   };
 
   const needsGoal = Boolean(intakeResult?.followUps.some(({ field }) => field === 'goal'));
-  const canConfirm = Boolean(intakeResult && (!needsGoal || goal));
+  const needsPet = Boolean(intakeResult?.followUps.some(({ field }) => field === 'pet'));
+  const effectivePetName = petName.trim() || intakeResult?.extraction.petName || '';
+  const canConfirm = Boolean(intakeResult?.extraction.primaryBarrier && effectivePetName);
   const petLabel = intakeResult?.extraction.petName ?? 'your pet';
 
   if (showDemoIntro) return <div className="mx-auto flex w-full max-w-4xl flex-1 items-center px-4 py-12 sm:px-6 md:px-8"><section className="w-full rounded-3xl border border-[var(--sage)]/45 bg-white/80 p-7 shadow-[0_22px_65px_rgba(46,84,64,.09)] sm:p-12" aria-labelledby="meet-luna-heading"><p className="text-xs font-bold uppercase tracking-[.2em] text-[var(--forest)]/65">Luna demo</p><h1 id="meet-luna-heading" className="mt-3 font-serif text-5xl text-[var(--forest)] sm:text-6xl">Meet Luna</h1><p className="mt-5 max-w-2xl text-lg leading-relaxed text-[var(--charcoal)]/80 sm:text-xl">Luna’s landlord is threatening eviction because she barks while her owner is at work. They have about a week and cannot afford a trainer.</p><Button type="button" onClick={() => setShowDemoIntro(false)} className="brand-focus mt-8 min-h-12 rounded-full bg-[var(--forest)] px-7 text-[var(--cream)]">See what Keep Them Home understands <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></Button></section></div>;
@@ -96,12 +98,14 @@ export const PetInfoScreen: React.FC<PetInfoScreenProps> = ({
       {intakeResult && <div className="mt-6 border-t border-[var(--border-warm)] pt-6" aria-live="polite">
         <h2 className="font-serif text-3xl text-[var(--forest)]">Here’s what we understood.</h2><p className="mt-2 max-w-2xl text-base leading-relaxed text-[var(--text-muted)]">We pulled out the pressures that seem to matter most. You can correct anything that doesn’t look right.</p>
         <ul className="mt-5 grid gap-3 sm:grid-cols-2">{factRows(intakeResult).map((fact) => <li key={fact} className="rounded-xl border border-[var(--sage)]/40 bg-[var(--sage)]/10 p-4"><p className="font-medium text-[var(--charcoal)]">{fact}</p><p className="mt-1 text-sm font-semibold text-[var(--forest)]">From your story</p></li>)}</ul>
+        {needsPet && !effectivePetName && <fieldset className="mt-8 rounded-xl border border-[var(--border-warm)] bg-[var(--surface-soft)] p-4"><legend className="px-1 text-sm font-bold text-[var(--forest)]">One thing we still need to know</legend><div className="mt-3"><Label htmlFor="extracted-pet-name">What is your pet’s name?</Label><Input id="extracted-pet-name" value={petName} onChange={(event) => onNameChange(event.target.value)} className="mt-2 bg-white" /></div></fieldset>}
         {needsGoal && <fieldset className="mt-8">
           <legend className="text-sm font-bold text-[var(--forest)]">One thing we still need to know</legend><p className="mt-3 font-serif text-2xl text-[var(--charcoal)]">What are you open to right now?</p><p className="mt-1 text-sm text-[var(--text-muted)]">This helps us evaluate which paths are actually possible.</p>
           <div className="mt-4 space-y-3">{goalOptions.map((option) => { const selected = goal === option.value; const label = option.value === 'Move' ? `I’m open to moving with ${petLabel}` : option.label; return <ChoiceCard key={option.value} name="intake-goal" checked={selected} onChange={() => setGoal(option.value)}>{label}</ChoiceCard>; })}</div>
-          <p className="mt-3 text-sm font-semibold text-[var(--text-muted)]">{goal ? 'Confirmed by you' : 'We still need to know'}</p>
+          <p className="mt-3 text-sm font-semibold text-[var(--text-muted)]">{goal ? 'Confirmed by you' : 'Optional — you can compare options without deciding this yet.'}</p>
         </fieldset>}
-        <Button type="button" disabled={!canConfirm} onClick={() => onIntakeConfirm(intakeResult, goal || undefined)} className="brand-focus mt-7 bg-[var(--forest)] text-[var(--cream)] hover:bg-[var(--forest-deep)]">See my options <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></Button>
+        {!canConfirm && <p id="missing-options-requirement" className="mt-5 text-sm font-semibold text-[var(--status-blocked-text)]" role="alert">{!intakeResult.extraction.primaryBarrier ? 'We still need to understand the main issue before comparing options. Answer step by step to continue.' : 'Tell us who we’re helping before comparing options.'}</p>}
+        <Button type="button" disabled={!canConfirm} aria-describedby={!canConfirm ? 'missing-options-requirement' : undefined} onClick={() => onIntakeConfirm(intakeResult, goal || undefined)} className="brand-focus mt-7 bg-[var(--forest)] text-[var(--cream)] hover:bg-[var(--forest-deep)]">See my options <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" /></Button>
       </div>}
     </section>
 
